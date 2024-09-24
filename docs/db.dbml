@@ -1,0 +1,54 @@
+// https://dbml.dbdiagram.io/docs
+
+Table entries {
+  id string [primary key]
+  url string
+  entry_type string
+  entry_language string
+  languages string[]
+  regions string[]
+  start_date date
+  end_date date
+  alternates string[]
+  related string[]
+
+  title string
+  authors string[]
+  abstract string
+  keywords string[]
+
+  org string
+  org_doc_id string
+  org_type string
+  youth_led string
+  notes string
+
+  // not needed
+  // refered_to_by string
+  // refers_to string
+  // ra string
+}
+
+Table entry_files {
+  entry_id string [ref: > entries.id]
+  filename string
+  url string
+
+  indexes {
+    (entry_id, filename) [pk]
+  }
+}
+
+Table spreadsheet_files {
+  id string [primary key]
+  filename string
+  url string
+  added_at timestamp
+}
+
+Table pages {
+  id integer [primary key]
+  slug string
+  content string [default: 'This is a sample page. Login to edit it.']
+  updated_at timestamp
+}
