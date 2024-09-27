@@ -2,22 +2,12 @@ package main
 
 import (
 	"log"
-	"net/http"
 
 	"github.com/YPS-Database/yps-db-backend/yps"
-	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
-
-type PingResponse struct {
-	OK bool `json:"ok"`
-}
-
-func ping(c *gin.Context) {
-	c.JSON(http.StatusOK, PingResponse{OK: true})
-}
 
 func main() {
 	// loading config
@@ -27,18 +17,17 @@ func main() {
 	}
 
 	// upgrading db
-	m, err := migrate.New("file://./migrations", config.DatabaseUrl)
+	m, err := migrate.New("file://"+config.DatabaseMigrationsPath, config.DatabaseUrl)
 	if err != nil {
 		log.Fatal("DB Migrations loading failed:", err)
 	}
 	err = m.Up()
-	if err != nil {
+	if err != nil && err != migrate.ErrNoChange {
 		log.Fatal("DB Migration failure:", err)
 	}
+	m.Close()
 
 	// api router
-	router := gin.Default()
-	router.GET("/", ping)
-
+	router := yps.GetRouter()
 	router.Run(config.Address)
 }

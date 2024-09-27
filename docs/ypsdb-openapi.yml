@@ -1,0 +1,25 @@
+# YPSDB API Endpoints
+
+openapi: 3.1.0
+
+info:
+  title: YPS-DB API
+  description: |
+    This file contains information about the YPS-DB API.
+  contact:
+    email: daniel@danieloaks.net
+  version: 0.0.1
+
+servers:
+  - url: https://api.server.test/v1
+
+paths:
+  /ping:
+    get:
+      operationId: ping
+      summary: Test the API.
+      description: |
+        Returns an OK message.
+      responses:
+        '200':
+          description: OK

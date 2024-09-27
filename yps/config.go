@@ -8,8 +8,9 @@ import (
 )
 
 type Config struct {
-	Address     string `env:"ADDR,required"`
-	DatabaseUrl string `env:"DATABASE_URL,required"`
+	Address                string `env:"ADDR,required"`
+	DatabaseUrl            string `env:"DATABASE_URL,required"`
+	DatabaseMigrationsPath string `env:"DATABASE_MIGRATIONS_PATH,default=migrations"`
 }
 
 func LoadConfig() (config Config, err error) {
