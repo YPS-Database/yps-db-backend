@@ -1,38 +1,38 @@
 // https://dbml.dbdiagram.io/docs
 
 Table entries {
-  id string [primary key]
-  url string
-  entry_type string
-  entry_language string
-  languages string[]
-  regions string[]
+  id text [primary key]
+  url text
+  entry_type text
+  entry_language text
+  languages text[]
+  regions text[]
   start_date date
   end_date date
-  alternates string[]
-  related string[]
+  alternates text[]
+  related text[]
 
-  title string
-  authors string[]
-  abstract string
-  keywords string[]
+  title text
+  authors text[]
+  abstract text
+  keywords text[]
 
-  org string
-  org_doc_id string
-  org_type string
-  youth_led string
-  notes string
+  org text
+  org_doc_id text
+  org_type text
+  youth_led text
+  notes text
 
   // not needed
-  // refered_to_by string
-  // refers_to string
-  // ra string
+  // refered_to_by text
+  // refers_to text
+  // ra text
 }
 
 Table entry_files {
-  entry_id string [ref: > entries.id]
-  filename string
-  url string
+  entry_id text [ref: > entries.id]
+  filename text
+  url text
 
   indexes {
     (entry_id, filename) [pk]
@@ -40,15 +40,15 @@ Table entry_files {
 }
 
 Table spreadsheet_files {
-  id string [primary key]
-  filename string
-  url string
+  id text [primary key]
+  filename text
+  url text
   added_at timestamp
 }
 
 Table pages {
   id integer [primary key]
-  slug string
-  content string [default: 'This is a sample page. Login to edit it.']
+  slug text
+  content text [default: 'This is a sample page. Login to edit it.']
   updated_at timestamp
 }
