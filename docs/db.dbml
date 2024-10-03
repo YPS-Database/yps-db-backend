@@ -47,8 +47,7 @@ Table spreadsheet_files {
 }
 
 Table pages {
-  id integer [primary key]
-  slug text
+  id text [primary key]
   content text [default: 'This is a sample page. Login to edit it.']
   updated_at timestamp
 }

@@ -35,8 +35,7 @@ CREATE TABLE "spreadsheet_files" (
 );
 
 CREATE TABLE "pages" (
-  "id" integer PRIMARY KEY,
-  "slug" text,
+  "id" text PRIMARY KEY,
   "content" text DEFAULT 'This is a sample page. Login to edit it.',
   "updated_at" timestamp
 );
