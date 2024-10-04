@@ -36,8 +36,12 @@ CREATE TABLE "spreadsheet_files" (
 
 CREATE TABLE "pages" (
   "id" text PRIMARY KEY,
-  "content" text DEFAULT 'This is a sample page. Login to edit it.',
-  "updated_at" timestamp
+  "content" text NOT NULL DEFAULT 'This is a sample page. Login to edit it.',
+  "google_form_id" text NOT NULL DEFAULT '',
+  "updated_at" timestamp NOT NULL DEFAULT (now())
 );
 
 ALTER TABLE "entry_files" ADD FOREIGN KEY ("entry_id") REFERENCES "entries" ("id");
+
+-- basic page contents
+INSERT INTO pages (id) VALUES ('about'), ('publications'), ('data'), ('submit');

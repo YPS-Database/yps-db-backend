@@ -27,6 +27,12 @@ func main() {
 	}
 	m.Close()
 
+	// open db
+	err = yps.OpenDatabase(config.DatabaseUrl)
+	if err != nil {
+		log.Fatal("Opening db failed:", err)
+	}
+
 	// api router
 	router := yps.GetRouter()
 	router.Run(config.Address)

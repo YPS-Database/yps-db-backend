@@ -48,6 +48,7 @@ Table spreadsheet_files {
 
 Table pages {
   id text [primary key]
-  content text [default: 'This is a sample page. Login to edit it.']
-  updated_at timestamp
+  content text [not null, default: 'This is a sample page. Login to edit it.']
+  google_form_id text [not null, default: '']
+  updated_at timestamp [not null, default: `now()`]
 }
