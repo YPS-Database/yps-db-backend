@@ -22,6 +22,7 @@ func GetRouter(trustedProxies []string, corsAllowedFrom []string) (router *gin.E
 
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowOrigins = corsAllowedFrom
+	corsConfig.AllowHeaders = append(corsConfig.AllowHeaders, "Authorization")
 	router.Use(cors.New(corsConfig))
 
 	// API
@@ -34,6 +35,7 @@ func GetRouter(trustedProxies []string, corsAllowedFrom []string) (router *gin.E
 
 	// pages
 	router.GET("/api/page/:slug", getPage)
+	router.PUT("/api/page/:slug", AdminAuthMiddleware(), editPage)
 
 	// entries
 	router.GET("/api/entry/:slug", getEntry)
