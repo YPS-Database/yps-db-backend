@@ -2,15 +2,22 @@ package yps
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
+	"aidanwoods.dev/go-paseto"
 	"github.com/joho/godotenv"
 	"github.com/sethvargo/go-envconfig"
 )
 
 type Config struct {
 	Address                string `env:"ADDR,required"`
+	CorsAllowedFrom        string `env:"CORS_ALLOWED_FROM,required"`
 	DatabaseUrl            string `env:"DATABASE_URL,required"`
 	DatabaseMigrationsPath string `env:"DATABASE_MIGRATIONS_PATH,default=migrations"`
+	PasetoKey              string `env:"PASETO_KEY"`
+	AdminPass              string `env:"ADMIN_PASS,required"`
+	SuperuserPass          string `env:"SUPERUSER_PASS,required"`
 }
 
 func LoadConfig() (config Config, err error) {
@@ -22,6 +29,11 @@ func LoadConfig() (config Config, err error) {
 
 	if err := envconfig.Process(ctx, &config); err != nil {
 		return config, err
+	}
+
+	if config.PasetoKey == "" {
+		fmt.Println("New random PASETO key:", paseto.NewV4SymmetricKey().ExportHex())
+		return config, errors.New("PASETO_KEY environment variable must be set")
 	}
 
 	return config, nil

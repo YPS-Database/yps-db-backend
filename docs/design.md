@@ -3,6 +3,7 @@
 ```
 /api/
     ping [GET]
+    auth [GET]
     page/{id} [GET,PUT]
     pages [GET]
     db [PUT]

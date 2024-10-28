@@ -1,3 +1,7 @@
+aidanwoods.dev/go-paseto v1.5.2 h1:9aKbCQQUeHCqis9Y6WPpJpM9MhEOEI5XBmfTkFMSF/o=
+aidanwoods.dev/go-paseto v1.5.2/go.mod h1:7eEJZ98h2wFi5mavCcbKfv9h86oQwut4fLVeL/UBFnw=
+aidanwoods.dev/go-result v0.1.0 h1:y/BMIRX6q3HwaorX1Wzrjo3WUdiYeyWbvGe18hKS3K8=
+aidanwoods.dev/go-result v0.1.0/go.mod h1:yridkWghM7AXSFA6wzx0IbsurIm1Lhuro3rYef8FBHM=
 github.com/bytedance/sonic v1.11.6 h1:oUp34TzMlL+OY1OUWxHqsdkgC/Zfc85zGqw9siXjrc0=
 github.com/bytedance/sonic v1.11.6/go.mod h1:LysEHSvpvDySVdC2f87zGWf6CIKJcAvqab1ZaiQtds4=
 github.com/bytedance/sonic/loader v0.1.1 h1:c+e5Pt1k/cy5wMveRDyk2X4B9hF4g7an8N3zCYjJFNM=

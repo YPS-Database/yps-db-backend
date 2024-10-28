@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"strings"
 
 	"github.com/YPS-Database/yps-db-backend/yps"
 	"github.com/golang-migrate/migrate/v4"
@@ -14,6 +15,12 @@ func main() {
 	config, err := yps.LoadConfig()
 	if err != nil {
 		log.Fatal("LoadConfig failed:", err)
+	}
+
+	// setup auth
+	err = yps.SetupAuth(config.PasetoKey, config.AdminPass, config.SuperuserPass)
+	if err != nil {
+		log.Fatal("SetupAuth failed:", err)
 	}
 
 	// upgrading db
@@ -34,6 +41,6 @@ func main() {
 	}
 
 	// api router
-	router := yps.GetRouter()
+	router := yps.GetRouter(nil, strings.Split(config.CorsAllowedFrom, " "))
 	router.Run(config.Address)
 }

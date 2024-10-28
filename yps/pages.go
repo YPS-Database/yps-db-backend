@@ -14,8 +14,7 @@ type Page struct {
 	Updated      time.Time
 }
 
-func (p *Page) ToHTML() string {
-	//TODO(dan): return google form too
+func (p *Page) ToMarkdown() string {
 	return p.Content
 }
 
@@ -24,9 +23,10 @@ type PageRequest struct {
 }
 
 type PageResponse struct {
-	ID      string `json:"id"`
-	HTML    string `json:"html"`
-	Updated int64  `json:"updated"`
+	ID           string `json:"id"`
+	MD           string `json:"markdown"`
+	GoogleFormID string `json:"google_form_id"`
+	Updated      int64  `json:"updated"`
 }
 
 func getPage(c *gin.Context) {
@@ -45,8 +45,9 @@ func getPage(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, PageResponse{
-		ID:      req.ID,
-		HTML:    page.ToHTML(),
-		Updated: page.Updated.Unix(),
+		ID:           req.ID,
+		MD:           page.ToMarkdown(),
+		GoogleFormID: page.GoogleFormID,
+		Updated:      page.Updated.Unix(),
 	})
 }
