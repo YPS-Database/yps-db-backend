@@ -24,10 +24,21 @@ func GetRouter(trustedProxies []string, corsAllowedFrom []string) (router *gin.E
 	corsConfig.AllowOrigins = corsAllowedFrom
 	router.Use(cors.New(corsConfig))
 
-	router.GET("/api/", ping)
-	router.GET("/api/page/:slug", getPage)
+	// API
+	router.GET("/api/ping", ping)
 	router.POST("/api/auth", login)
 
-	router.GET("/api/test", AdminAuthMiddleware(), ping)
+	// DB
+	router.GET("/api/dbs", getYpsDbs)
+	router.PUT("/api/db", AdminAuthMiddleware(), updateYpsDb)
+
+	// pages
+	router.GET("/api/page/:slug", getPage)
+
+	// entries
+	router.GET("/api/entry/:slug", getEntry)
+	router.GET("/api/browseby", getBrowseByFields)
+	router.GET("/api/search", searchEntries)
+
 	return router
 }
