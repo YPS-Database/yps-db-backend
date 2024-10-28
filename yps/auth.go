@@ -50,8 +50,9 @@ type LoginParams struct {
 }
 
 type LoginResponse struct {
-	Token string `json:"token"`
-	Level string `json:"level"`
+	Token  string `json:"token"`
+	Level  string `json:"level"`
+	Expiry string `json:"exp"`
 }
 
 func login(c *gin.Context) {
@@ -82,8 +83,9 @@ func login(c *gin.Context) {
 	token.Set("level", level)
 
 	c.JSON(http.StatusOK, LoginResponse{
-		Token: token.V4Encrypt(TheAuth.key, nil),
-		Level: level,
+		Token:  token.V4Encrypt(TheAuth.key, nil),
+		Level:  level,
+		Expiry: time.Now().Add(24 * time.Hour).UTC().String(),
 	})
 }
 
