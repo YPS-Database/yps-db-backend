@@ -14,10 +14,6 @@ type Page struct {
 	Updated      time.Time
 }
 
-func (p *Page) ToMarkdown() string {
-	return p.Content
-}
-
 type PageRequest struct {
 	ID string `uri:"slug" binding:"required"`
 }
@@ -46,7 +42,7 @@ func getPage(c *gin.Context) {
 
 	c.JSON(http.StatusOK, PageResponse{
 		ID:           req.ID,
-		MD:           page.ToMarkdown(),
+		MD:           page.Content,
 		GoogleFormID: page.GoogleFormID,
 		Updated:      page.Updated.Unix(),
 	})
