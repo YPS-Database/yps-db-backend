@@ -3,15 +3,50 @@ package yps
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
+
+type Entry struct {
+	ItemID         string
+	Title          string
+	Authors        string
+	URL            string
+	OrgPublisher   string
+	OrgDocID       string
+	OrgType        string
+	DocType        string
+	Abstract       string
+	YouthLed       string
+	Keywords       []string
+	StartDate      time.Time
+	EndDate        time.Time
+	Language       string
+	AltLanguageIDs []string
+	RelatedIDs     []string
+}
+
+type ImportTryResponse struct {
+	TotalEntries int                  `json:"total_entries"`
+	NewEntries   int                  `json:"new_entries"`
+	Entries      map[string]xlsxEntry `json:"entries"`
+	OldEntries   map[string]Entry     `json:"old_entries"`
+}
 
 func updateYpsDb(c *gin.Context) {
 	// whether to apply the changes or not
 	_, apply := c.GetQuery("apply")
 	fmt.Println("Apply changes?", apply)
 
+	if apply {
+		applyYpsDbUpdate(c)
+	} else {
+		testYpsDbUpdate(c)
+	}
+}
+
+func applyYpsDbUpdate(c *gin.Context) {
 	// load passed db file
 	fileHeader, err := c.FormFile("db")
 	if err != nil {
@@ -27,14 +62,62 @@ func updateYpsDb(c *gin.Context) {
 		return
 	}
 
-	entries, err := ReadEntriesFile(file)
+	newEntries, err := ReadEntriesFile(file)
 	if err != nil {
 		fmt.Println("Could not read entries file:", err.Error())
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, entries)
+	err = TheDb.UploadEntries(newEntries.Entries)
+	if err != nil {
+		fmt.Println("Could not upload entries:", err.Error())
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{"ok": true})
+}
+
+func testYpsDbUpdate(c *gin.Context) {
+	// load passed db file
+	fileHeader, err := c.FormFile("db")
+	if err != nil {
+		fmt.Println("Could not get file from updateYpsDb call:", err.Error())
+		c.JSON(400, gin.H{"error": "Could not get 'db' file in form body."})
+		return
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		fmt.Println("Could not open file from updateYpsDb call:", err.Error())
+		c.JSON(400, gin.H{"error": "Could not open 'db' file in form body."})
+		return
+	}
+
+	newEntries, err := ReadEntriesFile(file)
+	if err != nil {
+		fmt.Println("Could not read entries file:", err.Error())
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	existingEntries, err := TheDb.GetAllEntries()
+	if err != nil {
+		fmt.Println("Could not existing entries:", err.Error())
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	fmt.Println("entries:", len(existingEntries))
+
+	c.JSON(http.StatusOK, ImportTryResponse{
+		TotalEntries: len(newEntries.Entries),
+		NewEntries:   len(newEntries.Entries) - len(existingEntries),
+		// Entries:      newEntries.Entries,
+		Entries:    nil,
+		OldEntries: existingEntries,
+	})
 }
 
 func getYpsDbs(c *gin.Context) {

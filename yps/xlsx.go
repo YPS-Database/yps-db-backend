@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	ypsc "github.com/YPS-Database/yps-db-backend/yps/columns"
 	ypsl "github.com/YPS-Database/yps-db-backend/yps/languages"
@@ -40,17 +41,35 @@ func getCellValue(row xlsxreader.Row, column string) string {
 	return ""
 }
 
+var monthNameToNumber = map[string]int{
+	"january":   1,
+	"february":  2,
+	"march":     3,
+	"april":     4,
+	"may":       5,
+	"june":      6,
+	"july":      7,
+	"august":    8,
+	"september": 9,
+	"october":   10,
+	"november":  11,
+	"december":  12,
+}
+
 type xlsxEntry struct {
 	ItemID         string
 	Title          string
 	Authors        string
 	URL            string
 	OrgPublisher   string
+	OrgDocID       string
 	OrgType        string
 	DocType        string
 	Abstract       string
 	YouthLed       string
 	Keywords       []string
+	StartDate      string
+	EndDate        string
 	Language       string
 	rawLanguages   []string
 	AltLanguageIDs []string
@@ -181,6 +200,7 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 		var title = strings.TrimSpace(getCellValue(row, cols[ypsc.Title]))
 		var authors = strings.TrimSpace(getCellValue(row, cols[ypsc.Authors]))
 		var orgpublisher = strings.TrimSpace(getCellValue(row, cols[ypsc.OrgPublisher]))
+		var orgdocid = strings.TrimSpace(getCellValue(row, cols[ypsc.DocNumber]))
 		var url = strings.TrimSpace(getCellValue(row, cols[ypsc.URL]))
 		var abstract = strings.TrimSpace(getCellValue(row, cols[ypsc.Abstract]))
 		var youthled = strings.TrimSpace(getCellValue(row, cols[ypsc.YouthInvolvement]))
@@ -213,7 +233,29 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 
 		//TODO(dan): process regions
 
-		//TODO(dan): process start/end dates
+		// start and end dates
+		var startDate, endDate string
+		rawYear := strings.TrimSpace(getCellValue(row, cols[ypsc.Year]))
+		rawDayMonth := strings.TrimSpace(getCellValue(row, cols[ypsc.DayMonth]))
+		if rawYear != "N/A" {
+			// try scanning the time. this is a quirk with how dates are entered in the db file
+			t, basicScanErr := time.Parse("2006-01-02", rawDayMonth)
+
+			if basicScanErr == nil {
+				startDate = fmt.Sprintf("%s-%s", rawYear, t.Format("01-02"))
+			} else if rawDayMonth == "N/A" {
+				startDate = fmt.Sprintf("%s-01-01", rawYear)
+			} else if monthNameToNumber[strings.ToLower(rawDayMonth)] != 0 {
+				startDate = fmt.Sprintf("%s-%d-01", rawYear, monthNameToNumber[strings.ToLower(rawDayMonth)])
+			} else {
+				fmt.Println("can't process", rawDayMonth, "- skipping this date for the import")
+				startDate = fmt.Sprintf("%s-01-01", rawYear)
+			}
+
+			if endDate == "" {
+				endDate = startDate
+			}
+		}
 
 		// insert into our list of processed entries
 		newEntry := xlsxEntry{
@@ -222,11 +264,14 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 			Authors:        authors,
 			URL:            url,
 			OrgPublisher:   orgpublisher,
+			OrgDocID:       orgdocid,
 			OrgType:        orgtype,
 			DocType:        doctype,
 			Abstract:       abstract,
 			YouthLed:       youthled,
 			Keywords:       keywords,
+			StartDate:      startDate,
+			EndDate:        endDate,
 			rawLanguages:   langs,
 			AltLanguageIDs: altlangIDs,
 			RelatedIDs:     relatedIDs,

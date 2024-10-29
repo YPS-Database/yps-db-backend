@@ -1,4 +1,5 @@
 DROP TABLE "pages"
 DROP TABLE "spreadsheet_files"
 DROP TABLE "entry_files"
+DROP TABLE "temp_insert_entries"
 DROP TABLE "entries"
