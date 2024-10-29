@@ -185,9 +185,11 @@ type BrowseByFieldsResponse struct {
 }
 
 func getBrowseByFields(c *gin.Context) {
-	values := BrowseByFieldValues{
-		"Org":  {"a", "b", "c"},
-		"Year": {"2024", "2023", "2022"},
+	values, err := TheDb.GetBrowseByFields()
+	if err != nil {
+		fmt.Println("Could not get browse by fields:", err.Error())
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusOK, BrowseByFieldsResponse{

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -40,6 +41,58 @@ func (db *YPSDatabase) Close() {
 // entries
 //
 
+func (db *YPSDatabase) GetBrowseByFields() (values BrowseByFieldValues, err error) {
+	values = make(BrowseByFieldValues)
+
+	// year
+	rows, err := db.pool.Query(context.Background(), `
+select distinct DATE_PART('year', start_date) AS year from entries where start_date > '1800-01-01' order by year desc
+`)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Year query failed: %v\n", err)
+		return values, err
+	}
+	var years []string
+	for rows.Next() {
+		var year int
+		err = rows.Scan(&year)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Could not cast year: %v\n", err)
+			return values, err
+		}
+		years = append(years, strconv.Itoa(year))
+	}
+	rows.Close()
+	values["year"] = years
+
+	// entry type
+	rows, err = db.pool.Query(context.Background(), `
+select entry_type, count(*) as number_of_rows from entries group by entry_type order by number_of_rows desc
+`)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Entry type query failed: %v\n", err)
+		return values, err
+	}
+	var entryTypes []string
+	for rows.Next() {
+		var entryType string
+		var count int
+		err = rows.Scan(&entryType, &count)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Could not cast entry type or count: %v\n", err)
+			return values, err
+		}
+		if count < 10 {
+			break
+		}
+		entryTypes = append(entryTypes, entryType)
+	}
+	rows.Close()
+	values["entry_type"] = entryTypes
+
+	return values, err
+}
+
 func (db *YPSDatabase) GetAllEntries() (entries map[string]Entry, err error) {
 	entries = make(map[string]Entry)
 
@@ -66,7 +119,7 @@ from entries
 		entries[e.ItemID] = e
 	}
 
-	return entries, nil
+	return entries, err
 }
 
 func (db *YPSDatabase) UploadEntries(entryMap map[string]xlsxEntry) error {
@@ -141,7 +194,7 @@ where not exists (
 		return err
 	}
 
-	return nil
+	return err
 }
 
 // dynamic pages
