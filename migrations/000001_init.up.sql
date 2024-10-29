@@ -44,4 +44,4 @@ CREATE TABLE "pages" (
 ALTER TABLE "entry_files" ADD FOREIGN KEY ("entry_id") REFERENCES "entries" ("id");
 
 -- basic page contents
-INSERT INTO pages (id) VALUES ('about'), ('publications'), ('data'), ('submit');
+INSERT INTO pages (id) VALUES ('home'), ('about'), ('publications'), ('data'), ('submit');
