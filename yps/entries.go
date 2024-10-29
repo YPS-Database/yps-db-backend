@@ -1,12 +1,40 @@
 package yps
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 func updateYpsDb(c *gin.Context) {
+	// whether to apply the changes or not
+	_, apply := c.GetQuery("apply")
+	fmt.Println("Apply changes?", apply)
+
+	// load passed db file
+	fileHeader, err := c.FormFile("db")
+	if err != nil {
+		fmt.Println("Could not get file from updateYpsDb call:", err.Error())
+		c.JSON(400, gin.H{"error": "Could not get 'db' file in form body."})
+		return
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		fmt.Println("Could not open file from updateYpsDb call:", err.Error())
+		c.JSON(400, gin.H{"error": "Could not open 'db' file in form body."})
+		return
+	}
+
+	entries, err := ReadEntriesFile(file)
+	if err != nil {
+		fmt.Println("Could not read entries file:", err.Error())
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, entries)
 }
 
 func getYpsDbs(c *gin.Context) {
