@@ -3,13 +3,18 @@ package yps
 import (
 	"context"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
+	ypsl "github.com/YPS-Database/yps-db-backend/yps/languages"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+const DefaultEntriesPerPage = 30
 
 type YPSDatabase struct {
 	pool *pgxpool.Pool
@@ -63,7 +68,9 @@ select distinct DATE_PART('year', start_date) AS year from entries where start_d
 		years = append(years, strconv.Itoa(year))
 	}
 	rows.Close()
-	values["year"] = years
+	if len(years) > 0 {
+		values["year"] = years
+	}
 
 	// entry type
 	rows, err = db.pool.Query(context.Background(), `
@@ -88,7 +95,9 @@ select entry_type, count(*) as number_of_rows from entries group by entry_type o
 		entryTypes = append(entryTypes, entryType)
 	}
 	rows.Close()
-	values["entry_type"] = entryTypes
+	if len(entryTypes) > 0 {
+		values["entry_type"] = entryTypes
+	}
 
 	return values, err
 }
@@ -98,7 +107,7 @@ func (db *YPSDatabase) GetAllEntries() (entries map[string]Entry, err error) {
 
 	rows, err := db.pool.Query(context.Background(), `
 select id, url, entry_type, entry_language, start_date, end_date, alternates,
-	related, title, authors, abstract, keywords, org, org_doc_id, org_type, youth_led
+	related, title, authors, abstract, keywords, orgs, org_doc_id, org_type, youth_led
 from entries
 `)
 	if err != nil {
@@ -112,7 +121,7 @@ from entries
 
 		err = rows.Scan(&e.ItemID, &e.URL, &e.DocType, &e.Language, &e.StartDate, &e.EndDate,
 			&e.AltLanguageIDs, &e.RelatedIDs, &e.Title, &e.Authors, &e.Abstract, &e.Keywords,
-			&e.OrgPublisher, &e.OrgDocID, &e.OrgType, &e.YouthLed)
+			&e.OrgPublishers, &e.OrgDocID, &e.OrgType, &e.YouthLed)
 		if err != nil {
 			return entries, err
 		}
@@ -131,7 +140,7 @@ func (db *YPSDatabase) UploadEntries(entryMap map[string]xlsxEntry) error {
 		rows = append(rows, []any{
 			id, entry.URL, entry.DocType, entry.Language, startDate, endDate,
 			entry.AltLanguageIDs, entry.RelatedIDs, entry.Title, entry.Authors, entry.Abstract,
-			entry.Keywords, entry.OrgPublisher, entry.OrgDocID, entry.OrgType, entry.YouthLed,
+			entry.Keywords, entry.OrgPublishers, entry.OrgDocID, entry.OrgType, entry.YouthLed,
 		})
 	}
 	source := pgx.CopyFromRows(rows)
@@ -146,7 +155,7 @@ func (db *YPSDatabase) UploadEntries(entryMap map[string]xlsxEntry) error {
 	fmt.Println("starting copy into temp table")
 	_, err = db.pool.CopyFrom(context.Background(), pgx.Identifier{`temp_insert_entries`}, []string{
 		"id", "url", "entry_type", "entry_language", "start_date", "end_date", "alternates",
-		"related", "title", "authors", "abstract", "keywords", "org", "org_doc_id", "org_type",
+		"related", "title", "authors", "abstract", "keywords", "orgs", "org_doc_id", "org_type",
 		"youth_led"}, source)
 	fmt.Println("ended copy into temp table")
 
@@ -156,8 +165,8 @@ func (db *YPSDatabase) UploadEntries(entryMap map[string]xlsxEntry) error {
 
 	// transfer rows to real table
 	_, err = db.pool.Exec(context.Background(), `
-insert into entries (id, url, entry_type, entry_language, start_date, end_date, alternates, related, title, authors, abstract, keywords, org, org_doc_id, org_type, youth_led)
-select id, url, entry_type, entry_language, start_date, end_date, alternates, related, title, authors, abstract, keywords, org, org_doc_id, org_type, youth_led
+insert into entries (id, url, entry_type, entry_language, start_date, end_date, alternates, related, title, authors, abstract, keywords, orgs, org_doc_id, org_type, youth_led)
+select id, url, entry_type, entry_language, start_date, end_date, alternates, related, title, authors, abstract, keywords, orgs, org_doc_id, org_type, youth_led
 from temp_insert_entries
 on conflict (id)
 do update
@@ -173,7 +182,7 @@ set
 	authors=excluded.authors,
 	abstract=excluded.abstract,
 	keywords=excluded.keywords,
-	org=excluded.org,
+	orgs=excluded.orgs,
 	org_doc_id=excluded.org_doc_id,
 	org_type=excluded.org_type,
 	youth_led=excluded.youth_led
@@ -195,6 +204,108 @@ where not exists (
 	}
 
 	return err
+}
+
+func (db *YPSDatabase) Search(params SearchRequest) (values SearchResponse, err error) {
+	values.Entries = []SearchEntry{}
+
+	var assembledParams []any
+	newParamNumber := 1
+	var whereClauses []string
+
+	rankQuery := `1`
+	if strings.TrimSpace(params.Query) != "" {
+		queryColumn := `alltextsearch_index_col`
+		if params.SearchContext == "title" {
+			queryColumn = `titlesearch_index_col`
+		} else if params.SearchContext == "abstract" {
+			queryColumn = `abstractsearch_index_col`
+		}
+
+		rankQuery = fmt.Sprintf(`ts_rank_cd(%s, websearch_to_tsquery('english', $%d))`, queryColumn, newParamNumber)
+		whereClauses = append(whereClauses, fmt.Sprintf(`%s @@ websearch_to_tsquery('english', $%d)`, queryColumn, newParamNumber))
+		assembledParams = append(assembledParams, params.Query)
+		newParamNumber += 1
+	}
+
+	if params.EntryLanguage != "all" {
+		whereClauses = append(whereClauses, fmt.Sprintf(`entry_language = $%d`, newParamNumber))
+		assembledParams = append(assembledParams, params.EntryLanguage)
+		newParamNumber += 1
+	}
+
+	var assembledWhereClause string
+	if len(whereClauses) > 0 {
+		assembledWhereClause = fmt.Sprintf(`where %s`, strings.Join(whereClauses, ` AND `))
+	}
+
+	// count total response rows for total pages
+	assembledCountQuery := fmt.Sprintf(`
+SELECT count(*)
+FROM entries
+%s
+`, assembledWhereClause)
+
+	fmt.Println("COUNT:", []any{assembledCountQuery, len(assembledParams), assembledParams})
+
+	var totalEntries int
+	err = db.pool.QueryRow(context.Background(), assembledCountQuery, assembledParams...).Scan(&totalEntries)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Count QueryRow failed: %v\n", err)
+		return values, err
+	}
+	values.TotalEntries = totalEntries
+	values.TotalPages = int(math.Ceil(float64(totalEntries) / float64(DefaultEntriesPerPage)))
+
+	// search for actual entries
+	startEntry := max(params.Page-1, 0) * DefaultEntriesPerPage
+	values.StartEntry = startEntry + 1
+	values.EndEntry = values.StartEntry + min(DefaultEntriesPerPage, values.TotalEntries-(values.StartEntry-1)) - 1
+	if values.TotalEntries == 0 {
+		values.StartEntry = 0
+	}
+
+	sortClause := `rank desc, id desc`
+	if params.Sort == "dateasc" {
+		sortClause = `start_date asc, id desc`
+	} else if params.Sort == "datedesc" {
+		sortClause = `start_date desc, id desc`
+	} else if params.Sort == "abc" {
+		sortClause = `title asc, id desc`
+	}
+
+	assembledSearchQuery := fmt.Sprintf(`
+SELECT id, title, authors, start_date, end_date, entry_type, entry_language, %s AS rank
+FROM entries
+%s
+ORDER BY %s
+LIMIT %d
+OFFSET %d
+`, rankQuery, assembledWhereClause, sortClause, DefaultEntriesPerPage, startEntry)
+
+	fmt.Println("SEARCH:", []any{assembledSearchQuery, len(assembledParams), assembledParams})
+
+	rows, err := db.pool.Query(context.Background(), assembledSearchQuery, assembledParams...)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Search Query failed: %v\n", err)
+		return values, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var e SearchEntry
+
+		var rank float32
+		err = rows.Scan(&e.ID, &e.Title, &e.Authors, &e.StartDate, &e.EndDate, &e.DocumentType, &e.Language, &rank)
+		if err != nil {
+			return values, err
+		}
+		e.Language = ypsl.GetName(e.Language)
+		e.AvailableLanguages = []string{e.Language}
+		values.Entries = append(values.Entries, e)
+	}
+
+	return values, nil
 }
 
 // dynamic pages

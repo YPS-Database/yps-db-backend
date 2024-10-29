@@ -12,7 +12,7 @@ CREATE TABLE "entries" (
   "authors" text,
   "abstract" text,
   "keywords" text[],
-  "org" text,
+  "orgs" text[],
   "org_doc_id" text,
   "org_type" text,
   "youth_led" text,
@@ -33,7 +33,7 @@ CREATE TABLE "temp_insert_entries" (
   "authors" text,
   "abstract" text,
   "keywords" text[],
-  "org" text,
+  "orgs" text[],
   "org_doc_id" text,
   "org_type" text,
   "youth_led" text,
@@ -65,3 +65,22 @@ ALTER TABLE "entry_files" ADD FOREIGN KEY ("entry_id") REFERENCES "entries" ("id
 
 -- basic page contents
 INSERT INTO pages (id) VALUES ('home'), ('about'), ('publications'), ('data'), ('submit');
+
+-- full text search
+CREATE OR REPLACE FUNCTION f_kwarr2text(text[]) 
+  RETURNS text LANGUAGE sql IMMUTABLE AS $$SELECT array_to_string($1, '; ', '*')$$;
+
+ALTER TABLE entries
+  ADD COLUMN titlesearch_index_col tsvector
+    GENERATED ALWAYS AS (to_tsvector('english', title)) STORED;
+CREATE INDEX titlesearch_idx ON entries USING GIN (titlesearch_index_col);
+
+ALTER TABLE entries
+  ADD COLUMN abstractsearch_index_col tsvector
+    GENERATED ALWAYS AS (to_tsvector('english', abstract)) STORED;
+CREATE INDEX abstractsearch_idx ON entries USING GIN (abstractsearch_index_col);
+
+ALTER TABLE entries
+  ADD COLUMN alltextsearch_index_col tsvector
+    GENERATED ALWAYS AS (to_tsvector('english', coalesce(title, '') || ' ' || coalesce(f_kwarr2text(keywords)) || ' ' || coalesce(abstract, ''))) STORED;
+CREATE INDEX alltextsearch_idx ON entries USING GIN (alltextsearch_index_col);

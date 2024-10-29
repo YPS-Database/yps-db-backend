@@ -61,7 +61,7 @@ type xlsxEntry struct {
 	Title          string
 	Authors        string
 	URL            string
-	OrgPublisher   string
+	OrgPublishers  []string
 	OrgDocID       string
 	OrgType        string
 	DocType        string
@@ -199,7 +199,6 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 		// simple columns
 		var title = strings.TrimSpace(getCellValue(row, cols[ypsc.Title]))
 		var authors = strings.TrimSpace(getCellValue(row, cols[ypsc.Authors]))
-		var orgpublisher = strings.TrimSpace(getCellValue(row, cols[ypsc.OrgPublisher]))
 		var orgdocid = strings.TrimSpace(getCellValue(row, cols[ypsc.DocNumber]))
 		var url = strings.TrimSpace(getCellValue(row, cols[ypsc.URL]))
 		var abstract = strings.TrimSpace(getCellValue(row, cols[ypsc.Abstract]))
@@ -207,6 +206,7 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 		var orgtype = strings.TrimSpace(getCellValue(row, cols[ypsc.OrgType]))
 		var doctype = strings.TrimSpace(getCellValue(row, cols[ypsc.DocType]))
 
+		var orgpublishers = trimSpacesOnItemsSkipZero(strings.Split(getCellValue(row, cols[ypsc.OrgPublisher]), ";"))
 		var keywords = trimSpacesOnItemsSkipZero(strings.Split(getCellValue(row, cols[ypsc.Keywords]), ";"))
 		var altlangIDs = trimSpacesOnItemsSkipZero(strings.Split(getCellValue(row, cols[ypsc.AlternateLanguageEntries]), ","))
 		var relatedIDs = trimSpacesOnItemsSkipZero(strings.Split(getCellValue(row, cols[ypsc.RelatedEntries]), ","))
@@ -263,7 +263,7 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 			Title:          title,
 			Authors:        authors,
 			URL:            url,
-			OrgPublisher:   orgpublisher,
+			OrgPublishers:  orgpublishers,
 			OrgDocID:       orgdocid,
 			OrgType:        orgtype,
 			DocType:        doctype,

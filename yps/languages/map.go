@@ -157,3 +157,13 @@ func GetCode(name string) (code string, err error) {
 	}
 	return "", fmt.Errorf("could not find language code for [%s]", name)
 }
+
+func GetName(code string) string {
+	code = strings.TrimSpace(code)
+	for _, value := range languageCodeMap {
+		if strings.EqualFold(code, value[2]) {
+			return value[0]
+		}
+	}
+	return "Unknown"
+}

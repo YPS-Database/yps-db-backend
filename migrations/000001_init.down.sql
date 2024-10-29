@@ -1,3 +1,6 @@
+DROP INDEX "titlesearch_idx"
+DROP INDEX "abstractsearch_idx"
+DROP INDEX "alltextsearch_idx"
 DROP TABLE "pages"
 DROP TABLE "spreadsheet_files"
 DROP TABLE "entry_files"
