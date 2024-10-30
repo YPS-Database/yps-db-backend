@@ -22,6 +22,7 @@ EXPOSE 8465/tcp
 
 # ergo itself
 COPY --from=build-env /go/bin/yps-db-backend \
+                      /go/src/github.com/YPS-Database/yps-db-backend/migrations \
                       /go/src/github.com/YPS-Database/yps-db-backend/distrib/docker/run.sh \
                       /ypsdb-bin/
 
