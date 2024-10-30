@@ -235,6 +235,18 @@ func (db *YPSDatabase) Search(params SearchRequest) (values SearchResponse, err 
 		newParamNumber += 1
 	}
 
+	// arbitrary filters
+	if params.FilterKey == "entry_type" {
+		whereClauses = append(whereClauses, fmt.Sprintf(`entry_type = $%d`, newParamNumber))
+		assembledParams = append(assembledParams, params.FilterValue)
+		newParamNumber += 1
+	}
+	if params.FilterKey == "year" {
+		whereClauses = append(whereClauses, fmt.Sprintf(`date_part('year', start_date) = $%d`, newParamNumber))
+		assembledParams = append(assembledParams, params.FilterValue)
+		newParamNumber += 1
+	}
+
 	var assembledWhereClause string
 	if len(whereClauses) > 0 {
 		assembledWhereClause = fmt.Sprintf(`where %s`, strings.Join(whereClauses, ` AND `))

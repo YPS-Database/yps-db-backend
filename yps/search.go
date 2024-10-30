@@ -11,6 +11,8 @@ type SearchRequest struct {
 	Query         string `form:"query"`
 	SearchContext string `form:"queryContext"`
 	EntryLanguage string `form:"language"`
+	FilterKey     string `form:"filterKey"`
+	FilterValue   string `form:"filterValue"`
 	Sort          string `form:"sort"`
 	Page          int    `form:"page"`
 }
