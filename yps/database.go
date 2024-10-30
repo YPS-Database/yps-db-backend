@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -275,7 +276,7 @@ FROM entries
 	}
 
 	assembledSearchQuery := fmt.Sprintf(`
-SELECT id, title, authors, start_date, end_date, entry_type, entry_language, %s AS rank
+SELECT id, title, authors, start_date, end_date, entry_type, entry_language, array(select entry_language from entries e where e.id=entries.id or entries.id=ANY(alternates)) as languages, %s AS rank
 FROM entries
 %s
 ORDER BY %s
@@ -296,12 +297,18 @@ OFFSET %d
 		var e SearchEntry
 
 		var rank float32
-		err = rows.Scan(&e.ID, &e.Title, &e.Authors, &e.StartDate, &e.EndDate, &e.DocumentType, &e.Language, &rank)
+		var langCodes []string
+		err = rows.Scan(&e.ID, &e.Title, &e.Authors, &e.StartDate, &e.EndDate, &e.DocumentType, &e.Language, &langCodes, &rank)
 		if err != nil {
 			return values, err
 		}
 		e.Language = ypsl.GetName(e.Language)
-		e.AvailableLanguages = []string{e.Language}
+		for _, lc := range langCodes {
+			e.AvailableLanguages = append(e.AvailableLanguages, ypsl.GetName(lc))
+		}
+		slices.SortFunc(e.AvailableLanguages, func(a, b string) int {
+			return strings.Compare(strings.ToLower(a), strings.ToLower(b))
+		})
 		values.Entries = append(values.Entries, e)
 	}
 

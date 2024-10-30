@@ -297,6 +297,7 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 			continue
 		}
 
+		allAlternates := []string{id}
 		languagesToRemove := make(map[string]bool)
 		for _, altID := range entry.AltLanguageIDs {
 			// skip self being listed in alt language ids
@@ -311,6 +312,7 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 			if altEntry.Language == "" {
 				return nil, fmt.Errorf("item %s is an alternate, and must have only a single language defined", altID)
 			}
+			allAlternates = append(allAlternates, altID)
 			languagesToRemove[altEntry.Language] = true
 		}
 
@@ -327,6 +329,24 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 		}
 
 		entry.Language = finalLanguages[0]
+
+		// set all alternates on all entries
+		entry.AltLanguageIDs = allAlternates
+
+		for _, altID := range entry.AltLanguageIDs {
+			// skip self being listed in alt language ids
+			if altID == id {
+				continue
+			}
+
+			altEntry, exists := entries.Entries[altID]
+			if !exists {
+				return nil, fmt.Errorf("item %s lists %s as an alternate language, but item %s does not exist", id, altID, altID)
+			}
+
+			altEntry.AltLanguageIDs = allAlternates
+			entries.Entries[altEntry.ItemID] = altEntry
+		}
 
 		// post processing finished for this item, hooray
 		entries.Entries[id] = entry
