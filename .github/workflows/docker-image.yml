@@ -3,8 +3,7 @@ name: 'ghcr'
 on:
   push:
     branches:
-      - "main"
-      - "stable"
+      - "release"
     tags:
       - 'v*'
 
