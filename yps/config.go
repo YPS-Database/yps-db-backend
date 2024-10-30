@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 
 	"aidanwoods.dev/go-paseto"
 	"github.com/joho/godotenv"
@@ -21,8 +22,10 @@ type Config struct {
 }
 
 func LoadConfig() (config Config, err error) {
-	if err := godotenv.Load(); err != nil {
-		return config, err
+	if os.Getenv("APP_ENV") != "production" {
+		if err := godotenv.Load(); err != nil {
+			return config, err
+		}
 	}
 
 	ctx := context.Background()
