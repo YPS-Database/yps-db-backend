@@ -1,3 +1,3 @@
 #!/bin/sh
 
-exec /ypsdb-bin/yps-db-backend
+exec env DATABASE_MIGRATIONS_PATH=/ypsdb-bin/migrations /ypsdb-bin/yps-db-backend

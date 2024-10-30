@@ -22,9 +22,10 @@ EXPOSE 8465/tcp
 
 # ypsdb itself
 COPY --from=build-env /go/bin/yps-db-backend \
-                      /go/src/github.com/YPS-Database/yps-db-backend/migrations \
                       /go/src/github.com/YPS-Database/yps-db-backend/distrib/docker/run.sh \
                       /ypsdb-bin/
+COPY --from=build-env /go/src/github.com/YPS-Database/yps-db-backend/migrations \
+                      /ypsdb-bin/migrations
 
 # launch
 ENTRYPOINT ["/ypsdb-bin/run.sh"]
