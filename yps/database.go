@@ -266,13 +266,13 @@ FROM entries
 		values.StartEntry = 0
 	}
 
-	sortClause := `rank desc, id desc`
+	sortClause := `rank desc, id asc`
 	if params.Sort == "dateasc" {
-		sortClause = `start_date asc, id desc`
+		sortClause = `start_date asc, id asc`
 	} else if params.Sort == "datedesc" {
 		sortClause = `start_date desc, id desc`
 	} else if params.Sort == "abc" {
-		sortClause = `title asc, id desc`
+		sortClause = `title asc, id asc`
 	}
 
 	assembledSearchQuery := fmt.Sprintf(`
