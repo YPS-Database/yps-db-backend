@@ -20,7 +20,7 @@ LABEL maintainer="Daniel Oaks <daniel@danieloaks.net>" \
 # standard port listened on
 EXPOSE 8465/tcp
 
-# ergo itself
+# ypsdb itself
 COPY --from=build-env /go/bin/yps-db-backend \
                       /go/src/github.com/YPS-Database/yps-db-backend/migrations \
                       /go/src/github.com/YPS-Database/yps-db-backend/distrib/docker/run.sh \
