@@ -252,6 +252,11 @@ func (db *YPSDatabase) Search(params SearchRequest) (values SearchResponse, err 
 		assembledParams = append(assembledParams, params.FilterValue)
 		newParamNumber += 1
 	}
+	if params.FilterKey == "youth_led" {
+		whereClauses = append(whereClauses, fmt.Sprintf(`youth_led_distilled = $%d`, newParamNumber))
+		assembledParams = append(assembledParams, params.FilterValue)
+		newParamNumber += 1
+	}
 
 	var assembledWhereClause string
 	if len(whereClauses) > 0 {
