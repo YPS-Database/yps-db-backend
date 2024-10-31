@@ -41,35 +41,5 @@ func searchEntries(c *gin.Context) {
 		return
 	}
 
-	// entries = []SearchEntry{
-	// 	{
-	// 		ID:                 "1",
-	// 		Title:              "Maaaapping a Sector: Bridging the Evidence Gap on Youth-Driven Peacebuilding: Findings of the Global Survey of Youth-Led Organisations Working on Peace and Security",
-	// 		Authors:            "UNOY Peacebuilders, Search for Common Ground",
-	// 		Year:               "2017",
-	// 		DocumentType:       "Consultation Report",
-	// 		AvailableLanguages: []string{"English"},
-	// 		Language:           "English",
-	// 	},
-	// 	{
-	// 		ID:                 "2",
-	// 		Title:              "Validation Consultation with Youth for the Progress Study on Youth, Peace & Security",
-	// 		Authors:            "",
-	// 		Year:               "2017",
-	// 		DocumentType:       "Concept Note",
-	// 		AvailableLanguages: []string{"English", "French", "German"},
-	// 		Language:           "English",
-	// 	},
-	// 	{
-	// 		ID:                 "3",
-	// 		Title:              "Meeting Report: Youth, Peace, and Security in the Arab States Region: A Consultation and High-level Dialogue",
-	// 		Authors:            "Altiok, Ali: Secretariat for the Progress Study on Youth, Peace and Security",
-	// 		Year:               "2016",
-	// 		DocumentType:       "Consultation Report",
-	// 		AvailableLanguages: []string{"English"},
-	// 		Language:           "English",
-	// 	},
-	// }
-
 	c.JSON(http.StatusOK, response)
 }

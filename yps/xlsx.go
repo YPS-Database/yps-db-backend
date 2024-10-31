@@ -15,7 +15,7 @@ import (
 
 type EntriesXLSX struct {
 	file    *xlsxreader.XlsxFile
-	Entries map[string]xlsxEntry
+	Entries map[string]XlsxEntry
 }
 
 func simplifyColumnName(input string) string {
@@ -56,27 +56,6 @@ var monthNameToNumber = map[string]int{
 	"december":  12,
 }
 
-type xlsxEntry struct {
-	ItemID          string
-	Title           string
-	Authors         string
-	URL             string
-	OrgPublishers   []string
-	OrgDocID        string
-	OrgType         string
-	DocType         string
-	Abstract        string
-	YouthLed        string
-	YouthLedDetails string
-	Keywords        []string
-	StartDate       string
-	EndDate         string
-	Language        string
-	rawLanguages    []string
-	AltLanguageIDs  []string
-	RelatedIDs      []string
-}
-
 func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(input)
@@ -88,7 +67,7 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 
 	var entries EntriesXLSX
 	entries.file = file
-	entries.Entries = make(map[string]xlsxEntry)
+	entries.Entries = make(map[string]XlsxEntry)
 
 	if len(entries.file.Sheets) != 1 {
 		return nil, errors.New("file must have exactly one sheet")
@@ -272,7 +251,7 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 		}
 
 		// insert into our list of processed entries
-		newEntry := xlsxEntry{
+		newEntry := XlsxEntry{
 			ItemID:          itemID,
 			Title:           title,
 			Authors:         authors,

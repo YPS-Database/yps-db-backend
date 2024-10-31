@@ -8,12 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type Page struct {
-	Content      string
-	GoogleFormID string
-	Updated      time.Time
-}
-
 type PageRequest struct {
 	ID string `uri:"slug" binding:"required"`
 }

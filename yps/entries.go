@@ -3,35 +3,14 @@ package yps
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
-type Entry struct {
-	ItemID          string
-	Title           string
-	Authors         string
-	URL             string
-	OrgPublishers   []string
-	OrgDocID        string
-	OrgType         string
-	DocType         string
-	Abstract        string
-	YouthLed        string
-	YouthLedDetails string
-	Keywords        []string
-	StartDate       time.Time
-	EndDate         time.Time
-	Language        string
-	AltLanguageIDs  []string
-	RelatedIDs      []string
-}
-
 type ImportTryResponse struct {
 	TotalEntries int                  `json:"total_entries"`
 	NewEntries   int                  `json:"new_entries"`
-	Entries      map[string]xlsxEntry `json:"entries"`
+	Entries      map[string]XlsxEntry `json:"entries"`
 	OldEntries   map[string]Entry     `json:"old_entries"`
 }
 
@@ -137,17 +116,6 @@ func testYpsDbUpdate(c *gin.Context) {
 func getYpsDbs(c *gin.Context) {
 }
 
-type SearchEntry struct {
-	ID                 string    `json:"id"`
-	Title              string    `json:"title"`
-	Authors            string    `json:"authors"`
-	StartDate          time.Time `json:"start_date"`
-	EndDate            time.Time `json:"end_date"`
-	DocumentType       string    `json:"document_type"`
-	AvailableLanguages []string  `json:"available_languages"`
-	Language           string    `json:"language"`
-}
-
 type SearchEntriesResponse struct {
 	Entries    []SearchEntry `json:"entries"`
 	TotalPages int           `json:"total_pages"`
@@ -155,8 +123,6 @@ type SearchEntriesResponse struct {
 
 func getEntry(c *gin.Context) {
 }
-
-type BrowseByFieldValues map[string][]string
 
 type BrowseByFieldsResponse struct {
 	Values BrowseByFieldValues `json:"values"`

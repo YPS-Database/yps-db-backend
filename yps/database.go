@@ -136,7 +136,7 @@ from entries
 	return entries, err
 }
 
-func (db *YPSDatabase) UploadEntries(entryMap map[string]xlsxEntry) error {
+func (db *YPSDatabase) UploadEntries(entryMap map[string]XlsxEntry) error {
 	// assemble rows slice
 	var rows [][]any
 	for id, entry := range entryMap {
