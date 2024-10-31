@@ -210,6 +210,8 @@ where not exists (
 		return err
 	}
 
+	err = UpdateBrowseByFields()
+
 	return err
 }
 

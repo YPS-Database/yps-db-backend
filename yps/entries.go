@@ -35,6 +35,18 @@ type ImportTryResponse struct {
 	OldEntries   map[string]Entry     `json:"old_entries"`
 }
 
+var TheBrowseByFields *BrowseByFieldValues
+
+func UpdateBrowseByFields() error {
+	bbf, err := TheDb.GetBrowseByFields()
+	if err != nil {
+		fmt.Println("Failed to update browse by fields:", err)
+	} else {
+		TheBrowseByFields = &bbf
+	}
+	return err
+}
+
 func updateYpsDb(c *gin.Context) {
 	// whether to apply the changes or not
 	_, apply := c.GetQuery("apply")
@@ -151,15 +163,7 @@ type BrowseByFieldsResponse struct {
 }
 
 func getBrowseByFields(c *gin.Context) {
-	//TODO(dan): cache this, only update on load and db upload
-	values, err := TheDb.GetBrowseByFields()
-	if err != nil {
-		fmt.Println("Could not get browse by fields:", err.Error())
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
-
 	c.JSON(http.StatusOK, BrowseByFieldsResponse{
-		Values: values,
+		Values: *TheBrowseByFields,
 	})
 }

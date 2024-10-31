@@ -40,6 +40,12 @@ func main() {
 		log.Fatal("Opening db failed:", err)
 	}
 
+	// set browse by fields
+	err = yps.UpdateBrowseByFields()
+	if err != nil {
+		log.Fatal("Setting browse by fields failed:", err)
+	}
+
 	// api router
 	router := yps.GetRouter(nil, strings.Split(config.CorsAllowedFrom, " "))
 	router.Run(config.Address)
