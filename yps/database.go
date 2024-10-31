@@ -50,6 +50,9 @@ func (db *YPSDatabase) Close() {
 func (db *YPSDatabase) GetBrowseByFields() (values BrowseByFieldValues, err error) {
 	values = make(BrowseByFieldValues)
 
+	// always set youth-led to have this order
+	values["youth_led"] = []string{"Yes", "Co-authored", "No", "N/A"}
+
 	// year
 	rows, err := db.pool.Query(context.Background(), `
 select distinct DATE_PART('year', start_date) AS year from entries where start_date > '1800-01-01' order by year desc
@@ -108,7 +111,8 @@ func (db *YPSDatabase) GetAllEntries() (entries map[string]Entry, err error) {
 
 	rows, err := db.pool.Query(context.Background(), `
 select id, url, entry_type, entry_language, start_date, end_date, alternates,
-	related, title, authors, abstract, keywords, orgs, org_doc_id, org_type, youth_led
+	related, title, authors, abstract, keywords, orgs, org_doc_id, org_type, youth_led,
+	youth_led_distilled
 from entries
 `)
 	if err != nil {
@@ -122,7 +126,7 @@ from entries
 
 		err = rows.Scan(&e.ItemID, &e.URL, &e.DocType, &e.Language, &e.StartDate, &e.EndDate,
 			&e.AltLanguageIDs, &e.RelatedIDs, &e.Title, &e.Authors, &e.Abstract, &e.Keywords,
-			&e.OrgPublishers, &e.OrgDocID, &e.OrgType, &e.YouthLed)
+			&e.OrgPublishers, &e.OrgDocID, &e.OrgType, &e.YouthLedDetails, &e.YouthLed)
 		if err != nil {
 			return entries, err
 		}
@@ -142,6 +146,7 @@ func (db *YPSDatabase) UploadEntries(entryMap map[string]xlsxEntry) error {
 			id, entry.URL, entry.DocType, entry.Language, startDate, endDate,
 			entry.AltLanguageIDs, entry.RelatedIDs, entry.Title, entry.Authors, entry.Abstract,
 			entry.Keywords, entry.OrgPublishers, entry.OrgDocID, entry.OrgType, entry.YouthLed,
+			entry.YouthLedDetails,
 		})
 	}
 	source := pgx.CopyFromRows(rows)
@@ -157,7 +162,7 @@ func (db *YPSDatabase) UploadEntries(entryMap map[string]xlsxEntry) error {
 	_, err = db.pool.CopyFrom(context.Background(), pgx.Identifier{`temp_insert_entries`}, []string{
 		"id", "url", "entry_type", "entry_language", "start_date", "end_date", "alternates",
 		"related", "title", "authors", "abstract", "keywords", "orgs", "org_doc_id", "org_type",
-		"youth_led"}, source)
+		"youth_led_distilled", "youth_led"}, source)
 	fmt.Println("ended copy into temp table")
 
 	if err != nil {
@@ -166,8 +171,8 @@ func (db *YPSDatabase) UploadEntries(entryMap map[string]xlsxEntry) error {
 
 	// transfer rows to real table
 	_, err = db.pool.Exec(context.Background(), `
-insert into entries (id, url, entry_type, entry_language, start_date, end_date, alternates, related, title, authors, abstract, keywords, orgs, org_doc_id, org_type, youth_led)
-select id, url, entry_type, entry_language, start_date, end_date, alternates, related, title, authors, abstract, keywords, orgs, org_doc_id, org_type, youth_led
+insert into entries (id, url, entry_type, entry_language, start_date, end_date, alternates, related, title, authors, abstract, keywords, orgs, org_doc_id, org_type, youth_led, youth_led_distilled)
+select id, url, entry_type, entry_language, start_date, end_date, alternates, related, title, authors, abstract, keywords, orgs, org_doc_id, org_type, youth_led, youth_led_distilled
 from temp_insert_entries
 on conflict (id)
 do update
@@ -186,7 +191,8 @@ set
 	orgs=excluded.orgs,
 	org_doc_id=excluded.org_doc_id,
 	org_type=excluded.org_type,
-	youth_led=excluded.youth_led
+	youth_led=excluded.youth_led,
+	youth_led_distilled=excluded.youth_led_distilled
 `)
 	if err != nil {
 		return err

@@ -9,22 +9,23 @@ import (
 )
 
 type Entry struct {
-	ItemID         string
-	Title          string
-	Authors        string
-	URL            string
-	OrgPublishers  []string
-	OrgDocID       string
-	OrgType        string
-	DocType        string
-	Abstract       string
-	YouthLed       string
-	Keywords       []string
-	StartDate      time.Time
-	EndDate        time.Time
-	Language       string
-	AltLanguageIDs []string
-	RelatedIDs     []string
+	ItemID          string
+	Title           string
+	Authors         string
+	URL             string
+	OrgPublishers   []string
+	OrgDocID        string
+	OrgType         string
+	DocType         string
+	Abstract        string
+	YouthLed        string
+	YouthLedDetails string
+	Keywords        []string
+	StartDate       time.Time
+	EndDate         time.Time
+	Language        string
+	AltLanguageIDs  []string
+	RelatedIDs      []string
 }
 
 type ImportTryResponse struct {

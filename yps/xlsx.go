@@ -57,23 +57,24 @@ var monthNameToNumber = map[string]int{
 }
 
 type xlsxEntry struct {
-	ItemID         string
-	Title          string
-	Authors        string
-	URL            string
-	OrgPublishers  []string
-	OrgDocID       string
-	OrgType        string
-	DocType        string
-	Abstract       string
-	YouthLed       string
-	Keywords       []string
-	StartDate      string
-	EndDate        string
-	Language       string
-	rawLanguages   []string
-	AltLanguageIDs []string
-	RelatedIDs     []string
+	ItemID          string
+	Title           string
+	Authors         string
+	URL             string
+	OrgPublishers   []string
+	OrgDocID        string
+	OrgType         string
+	DocType         string
+	Abstract        string
+	YouthLed        string
+	YouthLedDetails string
+	Keywords        []string
+	StartDate       string
+	EndDate         string
+	Language        string
+	rawLanguages    []string
+	AltLanguageIDs  []string
+	RelatedIDs      []string
 }
 
 func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
@@ -202,7 +203,7 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 		var orgdocid = strings.TrimSpace(getCellValue(row, cols[ypsc.DocNumber]))
 		var url = strings.TrimSpace(getCellValue(row, cols[ypsc.URL]))
 		var abstract = strings.TrimSpace(getCellValue(row, cols[ypsc.Abstract]))
-		var youthled = strings.TrimSpace(getCellValue(row, cols[ypsc.YouthInvolvement]))
+		var youthleddesc = strings.TrimSpace(getCellValue(row, cols[ypsc.YouthInvolvement]))
 		var orgtype = strings.TrimSpace(getCellValue(row, cols[ypsc.OrgType]))
 		var doctype = strings.TrimSpace(getCellValue(row, cols[ypsc.DocType]))
 
@@ -215,6 +216,19 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 		var docnumber = strings.TrimSpace(getCellValue(row, cols[ypsc.DocNumber]))
 		if docnumber == "N/A" {
 			docnumber = ""
+		}
+
+		// work out whether the description is youth led or not
+		youthled := "Unknown"
+		if strings.HasPrefix(strings.ToLower(youthleddesc), "yes") || strings.HasPrefix(strings.ToLower(youthleddesc), "youth-led") {
+			youthled = "Yes"
+		} else if strings.Contains(strings.ToLower(youthleddesc), "co-authored") || strings.Contains(strings.ToLower(youthleddesc), "co authored") {
+			// this check is before No, because "No, co-authored with adults" should be Co-authored
+			youthled = "Co-authored"
+		} else if strings.HasPrefix(strings.ToLower(youthleddesc), "no") {
+			youthled = "No"
+		} else if strings.HasPrefix(strings.ToLower(youthleddesc), "n/a") {
+			youthled = "N/A"
 		}
 
 		// languages need special handling
@@ -259,22 +273,23 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 
 		// insert into our list of processed entries
 		newEntry := xlsxEntry{
-			ItemID:         itemID,
-			Title:          title,
-			Authors:        authors,
-			URL:            url,
-			OrgPublishers:  orgpublishers,
-			OrgDocID:       orgdocid,
-			OrgType:        orgtype,
-			DocType:        doctype,
-			Abstract:       abstract,
-			YouthLed:       youthled,
-			Keywords:       keywords,
-			StartDate:      startDate,
-			EndDate:        endDate,
-			rawLanguages:   langs,
-			AltLanguageIDs: altlangIDs,
-			RelatedIDs:     relatedIDs,
+			ItemID:          itemID,
+			Title:           title,
+			Authors:         authors,
+			URL:             url,
+			OrgPublishers:   orgpublishers,
+			OrgDocID:        orgdocid,
+			OrgType:         orgtype,
+			DocType:         doctype,
+			Abstract:        abstract,
+			YouthLed:        youthled,
+			YouthLedDetails: youthleddesc,
+			Keywords:        keywords,
+			StartDate:       startDate,
+			EndDate:         endDate,
+			rawLanguages:    langs,
+			AltLanguageIDs:  altlangIDs,
+			RelatedIDs:      relatedIDs,
 		}
 		if len(langs) == 1 {
 			newEntry.Language = langs[0]
