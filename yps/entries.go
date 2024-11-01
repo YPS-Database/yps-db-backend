@@ -116,12 +116,32 @@ func testYpsDbUpdate(c *gin.Context) {
 func getYpsDbs(c *gin.Context) {
 }
 
-type SearchEntriesResponse struct {
-	Entries    []SearchEntry `json:"entries"`
-	TotalPages int           `json:"total_pages"`
+type GetEntryRequest struct {
+	ID string `uri:"slug" binding:"required"`
+}
+
+type GetEntryResponse struct {
+	LookedUpEntry
 }
 
 func getEntry(c *gin.Context) {
+	var req GetEntryRequest
+	if err := c.ShouldBindUri(&req); err != nil {
+		fmt.Println("Could not get entry URI binding:", err.Error())
+		c.JSON(400, gin.H{"error": "Entry must be given"})
+		return
+	}
+
+	luEntry, err := TheDb.GetSingleEntry(req.ID)
+	if err != nil {
+		fmt.Println("Could not get entry:", req.ID, ":", err.Error())
+		c.JSON(400, gin.H{"error": "Could not get entry"})
+		return
+	}
+
+	var response GetEntryResponse = luEntry.AsEntryResponse()
+
+	c.JSON(http.StatusOK, response)
 }
 
 type BrowseByFieldsResponse struct {

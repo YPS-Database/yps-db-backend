@@ -136,6 +136,56 @@ from entries
 	return entries, err
 }
 
+func (db *YPSDatabase) GetSingleEntry(id string) (entry LookedUpEntry, err error) {
+	entry.AlternateLanguages = make(map[string]LookedUpAltLanguageEntry)
+	entry.Files = make(map[string][]EntryFile)
+
+	// get the main entry
+	err = db.pool.QueryRow(context.Background(), `
+select url, entry_type, entry_language, start_date, end_date, alternates, related, title, authors, abstract, keywords, orgs, org_doc_id, org_type, youth_led, youth_led_distilled
+from entries
+where id=$1
+`, id).Scan(
+		&entry.Entry.URL, &entry.Entry.DocType, &entry.Entry.Language, &entry.Entry.StartDate, &entry.Entry.EndDate,
+		&entry.Entry.AltLanguageIDs, &entry.Entry.RelatedIDs, &entry.Entry.Title, &entry.Entry.Authors,
+		&entry.Entry.Abstract, &entry.Entry.Keywords, &entry.Entry.OrgPublishers, &entry.Entry.OrgDocID,
+		&entry.Entry.OrgType, &entry.Entry.YouthLedDetails, &entry.Entry.YouthLed,
+	)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "QueryRow for entry failed: %v\n", err)
+		return entry, err
+	}
+
+	// get the alternate language files
+	rows, err := db.pool.Query(context.Background(), `
+select id, entry_language, title
+from entries
+where id=any($1)
+`, entry.Entry.AltLanguageIDs)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Query for alt rows failed: %v\n", err)
+		return entry, err
+	}
+	for rows.Next() {
+		var leID string
+		var le LookedUpAltLanguageEntry
+
+		err = rows.Scan(&leID, &le.Language, &le.Title)
+		if err != nil {
+			return entry, err
+		}
+
+		if leID != id {
+			entry.AlternateLanguages[leID] = le
+		}
+	}
+	rows.Close()
+
+	//TODO(dan): look up related docs and files for this language and others
+
+	return entry, err
+}
+
 func (db *YPSDatabase) UploadEntries(entryMap map[string]XlsxEntry) error {
 	// assemble rows slice
 	var rows [][]any
