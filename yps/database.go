@@ -142,14 +142,14 @@ func (db *YPSDatabase) GetSingleEntry(id string) (entry LookedUpEntry, err error
 
 	// get the main entry
 	err = db.pool.QueryRow(context.Background(), `
-select url, entry_type, entry_language, start_date, end_date, alternates, related, title, authors, abstract, keywords, orgs, org_doc_id, org_type, youth_led, youth_led_distilled
+select id, url, entry_type, entry_language, start_date, end_date, alternates, related, title, authors, abstract, keywords, orgs, org_doc_id, org_type, youth_led, youth_led_distilled
 from entries
 where id=$1
 `, id).Scan(
-		&entry.Entry.URL, &entry.Entry.DocType, &entry.Entry.Language, &entry.Entry.StartDate, &entry.Entry.EndDate,
-		&entry.Entry.AltLanguageIDs, &entry.Entry.RelatedIDs, &entry.Entry.Title, &entry.Entry.Authors,
-		&entry.Entry.Abstract, &entry.Entry.Keywords, &entry.Entry.OrgPublishers, &entry.Entry.OrgDocID,
-		&entry.Entry.OrgType, &entry.Entry.YouthLedDetails, &entry.Entry.YouthLed,
+		&entry.Entry.ItemID, &entry.Entry.URL, &entry.Entry.DocType, &entry.Entry.Language, &entry.Entry.StartDate,
+		&entry.Entry.EndDate, &entry.Entry.AltLanguageIDs, &entry.Entry.RelatedIDs, &entry.Entry.Title,
+		&entry.Entry.Authors, &entry.Entry.Abstract, &entry.Entry.Keywords, &entry.Entry.OrgPublishers,
+		&entry.Entry.OrgDocID, &entry.Entry.OrgType, &entry.Entry.YouthLedDetails, &entry.Entry.YouthLed,
 	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "QueryRow for entry failed: %v\n", err)
