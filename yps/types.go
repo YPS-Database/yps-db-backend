@@ -25,30 +25,28 @@ type Entry struct {
 }
 
 type EntryFile struct {
-	Filename string
-	URL      string
+	Filename string `json:"filename"`
+	URL      string `json:"url"`
 }
 
 type LookedUpAltLanguageEntry struct {
-	Language string `json:"language"`
-	Title    string `json:"title"`
+	Language string      `json:"language"`
+	Title    string      `json:"title"`
+	Files    []EntryFile `json:"files"`
 }
 
 type LookedUpEntry struct {
 	Entry Entry `json:"entry"`
 
-	// id to entry
-	AlternateLanguages map[string]LookedUpAltLanguageEntry `json:"alternate_languages"`
+	Files []EntryFile `json:"files"`
 
-	// all files, this language and others
-	// map of entry id -> list of files
-	Files map[string][]EntryFile `json:"files"`
+	Alternates map[string]LookedUpAltLanguageEntry `json:"alternates"`
 }
 
 func (luEntry *LookedUpEntry) AsEntryResponse() (response GetEntryResponse) {
 	response.Entry = luEntry.Entry
-	response.AlternateLanguages = luEntry.AlternateLanguages
 	response.Files = luEntry.Files
+	response.Alternates = luEntry.Alternates
 	return response
 }
 

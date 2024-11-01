@@ -137,8 +137,8 @@ from entries
 }
 
 func (db *YPSDatabase) GetSingleEntry(id string) (entry LookedUpEntry, err error) {
-	entry.AlternateLanguages = make(map[string]LookedUpAltLanguageEntry)
-	entry.Files = make(map[string][]EntryFile)
+	entry.Files = []EntryFile{}
+	entry.Alternates = make(map[string]LookedUpAltLanguageEntry)
 
 	// get the main entry
 	err = db.pool.QueryRow(context.Background(), `
@@ -156,7 +156,7 @@ where id=$1
 		return entry, err
 	}
 
-	// get the alternate language files
+	// get the alternate languages
 	rows, err := db.pool.Query(context.Background(), `
 select id, entry_language, title
 from entries
@@ -169,6 +169,7 @@ where id=any($1)
 	for rows.Next() {
 		var leID string
 		var le LookedUpAltLanguageEntry
+		le.Files = []EntryFile{}
 
 		err = rows.Scan(&leID, &le.Language, &le.Title)
 		if err != nil {
@@ -176,7 +177,7 @@ where id=any($1)
 		}
 
 		if leID != id {
-			entry.AlternateLanguages[leID] = le
+			entry.Alternates[leID] = le
 		}
 	}
 	rows.Close()
