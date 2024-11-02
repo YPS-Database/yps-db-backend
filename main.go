@@ -17,6 +17,12 @@ func main() {
 		log.Fatal("LoadConfig failed:", err)
 	}
 
+	// setup s3
+	err = yps.OpenS3(config.UploadS3Bucket, config.UploadS3KeyPrefix, config.UploadS3URLPrefix)
+	if err != nil {
+		log.Fatal("OpenS3 failed:", err)
+	}
+
 	// setup auth
 	err = yps.SetupAuth(config.PasetoKey, config.AdminPass, config.SuperuserPass)
 	if err != nil {

@@ -36,10 +36,6 @@ func OpenDatabase(connectionUrl string) error {
 	return nil
 }
 
-func GetDatabase() *YPSDatabase {
-	return TheDb
-}
-
 func (db *YPSDatabase) Close() {
 	db.pool.Close()
 }

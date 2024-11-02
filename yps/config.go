@@ -19,6 +19,9 @@ type Config struct {
 	PasetoKey              string `env:"PASETO_KEY"`
 	AdminPass              string `env:"ADMIN_PASS,required"`
 	SuperuserPass          string `env:"SUPERUSER_PASS,required"`
+	UploadS3Bucket         string `env:"UPLOAD_S3_BUCKET, required"`
+	UploadS3KeyPrefix      string `env:"UPLOAD_KEY_PREFIX, required"`
+	UploadS3URLPrefix      string `env:"UPLOAD_URL_PREFIX, required"`
 }
 
 func LoadConfig() (config Config, err error) {
