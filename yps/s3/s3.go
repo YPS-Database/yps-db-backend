@@ -2,9 +2,14 @@ package ypss3
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"io"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/smithy-go"
 )
 
 type YPSS3 struct {
@@ -32,4 +37,36 @@ func Open(bucket, uploadKeyPrefix, uploadURLPrefix string) (*YPSS3, error) {
 	theS3.client = s3.NewFromConfig(cfg)
 
 	return &theS3, nil
+}
+
+func (ys3 *YPSS3) Upload(key string, body io.Reader) (*S3Upload, error) {
+	name := fmt.Sprintf("%s%s", ys3.uploadKeyPrefix, key)
+	_, err := ys3.client.PutObject(context.TODO(), &s3.PutObjectInput{
+		Bucket: aws.String(ys3.bucket),
+		Key:    aws.String(name),
+		Body:   body,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &S3Upload{
+		Filename: name,
+		URL:      fmt.Sprintf("%s%s", ys3.uploadURLPrefix, key),
+	}, nil
+}
+
+func (ys3 *YPSS3) FileExists(key string) (bool, error) {
+	name := fmt.Sprintf("%s%s", ys3.uploadKeyPrefix, key)
+	_, err := ys3.client.HeadObject(context.TODO(), &s3.HeadObjectInput{
+		Bucket: aws.String(ys3.bucket),
+		Key:    aws.String(name),
+	})
+	var apiError smithy.APIError
+	if err == nil {
+		return true, nil
+	} else if errors.As(err, &apiError) && apiError.ErrorCode() == "NotFound" {
+		return false, nil
+	}
+	fmt.Println("Other type of error encountered from S3 HeadObject:", apiError.ErrorCode(), err)
+	return true, err
 }

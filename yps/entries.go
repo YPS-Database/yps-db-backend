@@ -1,9 +1,11 @@
 package yps
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 
+	ypss3 "github.com/YPS-Database/yps-db-backend/yps/s3"
 	"github.com/gin-gonic/gin"
 )
 
@@ -53,8 +55,30 @@ func applyYpsDbUpdate(c *gin.Context) {
 		c.JSON(400, gin.H{"error": "Could not open 'db' file in form body."})
 		return
 	}
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(file)
 
-	newEntries, err := ReadEntriesFile(file)
+	s3fn := fmt.Sprintf("dbs/%s", fileHeader.Filename)
+
+	exists, err := TheS3.FileExists(s3fn)
+	if err != nil {
+		fmt.Println("Could not check file existence:", err.Error())
+		c.JSON(400, gin.H{"error": "Could not check whether db file exists."})
+		return
+	}
+	if exists {
+		c.JSON(400, gin.H{"error": "Spreadsheet with this filename already exists. Please rename the file before you upload it."})
+		return
+	}
+
+	err = TheDb.UploadDbFile(s3fn, bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		fmt.Println("Could not upload new db file:", err.Error())
+		c.JSON(400, gin.H{"error": "Could not upload 'db' file from form body."})
+		return
+	}
+
+	newEntries, err := ReadEntriesFile(bytes.NewReader(buf.Bytes()))
 	if err != nil {
 		fmt.Println("Could not read entries file:", err.Error())
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -79,6 +103,17 @@ func testYpsDbUpdate(c *gin.Context) {
 	if err != nil {
 		fmt.Println("Could not get file from updateYpsDb call:", err.Error())
 		c.JSON(400, gin.H{"error": "Could not get 'db' file in form body."})
+		return
+	}
+
+	exists, err := TheS3.FileExists(fmt.Sprintf("dbs/%s", fileHeader.Filename))
+	if err != nil {
+		fmt.Println("Could not check file existence:", err.Error())
+		c.JSON(400, gin.H{"error": "Could not check whether db file exists."})
+		return
+	}
+	if exists {
+		c.JSON(400, gin.H{"error": "Spreadsheet with this filename already exists. Please rename the file before you upload it."})
 		return
 	}
 
@@ -113,7 +148,21 @@ func testYpsDbUpdate(c *gin.Context) {
 	})
 }
 
+type GetDbFilesResponse struct {
+	Files []ypss3.S3Upload `json:"files"`
+}
+
 func getYpsDbs(c *gin.Context) {
+	files, err := TheDb.GetDbFiles()
+	if err != nil {
+		fmt.Println("Could not get db files:", err.Error())
+		c.JSON(400, gin.H{"error": "Could not get db files"})
+		return
+	}
+
+	c.JSON(http.StatusOK, GetDbFilesResponse{
+		Files: files,
+	})
 }
 
 type GetEntryRequest struct {

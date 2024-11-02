@@ -3,6 +3,7 @@ package yps
 import (
 	"context"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"slices"
@@ -11,6 +12,8 @@ import (
 	"time"
 
 	ypsl "github.com/YPS-Database/yps-db-backend/yps/languages"
+	ypss3 "github.com/YPS-Database/yps-db-backend/yps/s3"
+	uuid "github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -38,6 +41,58 @@ func OpenDatabase(connectionUrl string) error {
 
 func (db *YPSDatabase) Close() {
 	db.pool.Close()
+}
+
+// db files
+
+func (db *YPSDatabase) UploadDbFile(filename string, body io.Reader) error {
+	uploaded, err := TheS3.Upload(filename, body)
+	if err != nil {
+		return err
+	}
+
+	id, err := uuid.NewV7()
+	if err != nil {
+		return err
+	}
+
+	_, err = db.pool.Exec(context.Background(), `
+insert into spreadsheet_files (id, filename, url, added_at)
+values ($1, $2, $3, $4)
+`, id, uploaded.Filename, uploaded.URL, time.Now())
+	return err
+}
+
+func (db *YPSDatabase) GetDbFiles() (files []ypss3.S3Upload, err error) {
+	files = []ypss3.S3Upload{}
+
+	rows, err := db.pool.Query(context.Background(), `
+select filename, url
+from spreadsheet_files
+order by added_at desc
+`)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Query for db files failed: %v\n", err)
+		return files, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var thisFile ypss3.S3Upload
+
+		err = rows.Scan(&thisFile.Filename, &thisFile.URL)
+		if err != nil {
+			return files, err
+		}
+
+		// remove all but the actual filename from the returned fn
+		splitUp := strings.Split(thisFile.Filename, "/")
+		thisFile.Filename = splitUp[len(splitUp)-1]
+
+		files = append(files, thisFile)
+	}
+
+	return files, nil
 }
 
 // entries
