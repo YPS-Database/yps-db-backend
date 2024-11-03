@@ -14,6 +14,7 @@ type ImportTryResponse struct {
 	NewEntries   int                  `json:"new_entries"`
 	Entries      map[string]XlsxEntry `json:"entries"`
 	OldEntries   map[string]Entry     `json:"old_entries"`
+	Nits         []string             `json:"nits"`
 }
 
 var TheBrowseByFields *BrowseByFieldValues
@@ -145,6 +146,7 @@ func testYpsDbUpdate(c *gin.Context) {
 		NewEntries:   len(newEntries.Entries) - len(existingEntries),
 		Entries:      newEntries.Entries,
 		OldEntries:   existingEntries,
+		Nits:         newEntries.Nits,
 	})
 }
 

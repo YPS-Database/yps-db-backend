@@ -154,6 +154,33 @@ select entry_type, count(*) as number_of_rows from entries group by entry_type o
 		values["entry_type"] = entryTypes
 	}
 
+	// regions
+	rows, err = db.pool.Query(context.Background(), `
+	select distinct unnest(regions) as region_name from entries order by region_name asc
+	`)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Entry type query failed: %v\n", err)
+		return values, err
+	}
+	var regions []string
+	for rows.Next() {
+		var region string
+		err = rows.Scan(&region)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Could not cast region name: %v\n", err)
+			return values, err
+		}
+		if region != "Global" && region != "N/A" {
+			regions = append(regions, region)
+		}
+	}
+	rows.Close()
+	if len(regions) > 0 {
+		regions = append(regions, "Global")
+		regions = append(regions, "N/A")
+		values["region"] = regions
+	}
+
 	return values, err
 }
 
@@ -162,8 +189,8 @@ func (db *YPSDatabase) GetAllEntries() (entries map[string]Entry, err error) {
 
 	rows, err := db.pool.Query(context.Background(), `
 select id, url, entry_type, entry_language, start_date, end_date, alternates,
-	related, title, authors, abstract, keywords, orgs, org_doc_id, org_type, youth_led,
-	youth_led_distilled
+	related, title, authors, abstract, keywords, regions, orgs, org_doc_id, org_type,
+	youth_led, youth_led_distilled
 from entries
 `)
 	if err != nil {
@@ -177,7 +204,7 @@ from entries
 
 		err = rows.Scan(&e.ItemID, &e.URL, &e.DocType, &e.Language, &e.StartDate, &e.EndDate,
 			&e.AltLanguageIDs, &e.RelatedIDs, &e.Title, &e.Authors, &e.Abstract, &e.Keywords,
-			&e.OrgPublishers, &e.OrgDocID, &e.OrgType, &e.YouthLedDetails, &e.YouthLed)
+			&e.Regions, &e.OrgPublishers, &e.OrgDocID, &e.OrgType, &e.YouthLedDetails, &e.YouthLed)
 		if err != nil {
 			return entries, err
 		}
@@ -193,14 +220,15 @@ func (db *YPSDatabase) GetSingleEntry(id string) (entry LookedUpEntry, err error
 
 	// get the main entry
 	err = db.pool.QueryRow(context.Background(), `
-select id, url, entry_type, entry_language, start_date, end_date, alternates, related, title, authors, abstract, keywords, orgs, org_doc_id, org_type, youth_led, youth_led_distilled
+select id, url, entry_type, entry_language, start_date, end_date, alternates, related, title, authors, abstract, keywords, regions, orgs, org_doc_id, org_type, youth_led, youth_led_distilled
 from entries
 where id=$1
 `, id).Scan(
 		&entry.Entry.ItemID, &entry.Entry.URL, &entry.Entry.DocType, &entry.Entry.Language, &entry.Entry.StartDate,
 		&entry.Entry.EndDate, &entry.Entry.AltLanguageIDs, &entry.Entry.RelatedIDs, &entry.Entry.Title,
-		&entry.Entry.Authors, &entry.Entry.Abstract, &entry.Entry.Keywords, &entry.Entry.OrgPublishers,
-		&entry.Entry.OrgDocID, &entry.Entry.OrgType, &entry.Entry.YouthLedDetails, &entry.Entry.YouthLed,
+		&entry.Entry.Authors, &entry.Entry.Abstract, &entry.Entry.Keywords, &entry.Entry.Regions,
+		&entry.Entry.OrgPublishers, &entry.Entry.OrgDocID, &entry.Entry.OrgType, &entry.Entry.YouthLedDetails,
+		&entry.Entry.YouthLed,
 	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "QueryRow for entry failed: %v\n", err)
@@ -247,8 +275,8 @@ func (db *YPSDatabase) UploadEntries(entryMap map[string]XlsxEntry) error {
 		rows = append(rows, []any{
 			id, entry.URL, entry.DocType, entry.Language, startDate, endDate,
 			entry.AltLanguageIDs, entry.RelatedIDs, entry.Title, entry.Authors, entry.Abstract,
-			entry.Keywords, entry.OrgPublishers, entry.OrgDocID, entry.OrgType, entry.YouthLed,
-			entry.YouthLedDetails,
+			entry.Keywords, entry.Regions, entry.OrgPublishers, entry.OrgDocID, entry.OrgType,
+			entry.YouthLed, entry.YouthLedDetails,
 		})
 	}
 	source := pgx.CopyFromRows(rows)
@@ -263,8 +291,8 @@ func (db *YPSDatabase) UploadEntries(entryMap map[string]XlsxEntry) error {
 	fmt.Println("starting copy into temp table")
 	_, err = db.pool.CopyFrom(context.Background(), pgx.Identifier{`temp_insert_entries`}, []string{
 		"id", "url", "entry_type", "entry_language", "start_date", "end_date", "alternates",
-		"related", "title", "authors", "abstract", "keywords", "orgs", "org_doc_id", "org_type",
-		"youth_led_distilled", "youth_led"}, source)
+		"related", "title", "authors", "abstract", "keywords", "regions", "orgs", "org_doc_id",
+		"org_type", "youth_led_distilled", "youth_led"}, source)
 	fmt.Println("ended copy into temp table")
 
 	if err != nil {
@@ -273,8 +301,8 @@ func (db *YPSDatabase) UploadEntries(entryMap map[string]XlsxEntry) error {
 
 	// transfer rows to real table
 	_, err = db.pool.Exec(context.Background(), `
-insert into entries (id, url, entry_type, entry_language, start_date, end_date, alternates, related, title, authors, abstract, keywords, orgs, org_doc_id, org_type, youth_led, youth_led_distilled)
-select id, url, entry_type, entry_language, start_date, end_date, alternates, related, title, authors, abstract, keywords, orgs, org_doc_id, org_type, youth_led, youth_led_distilled
+insert into entries (id, url, entry_type, entry_language, start_date, end_date, alternates, related, title, authors, abstract, keywords, regions, orgs, org_doc_id, org_type, youth_led, youth_led_distilled)
+select id, url, entry_type, entry_language, start_date, end_date, alternates, related, title, authors, abstract, keywords, regions, orgs, org_doc_id, org_type, youth_led, youth_led_distilled
 from temp_insert_entries
 on conflict (id)
 do update
@@ -290,6 +318,7 @@ set
 	authors=excluded.authors,
 	abstract=excluded.abstract,
 	keywords=excluded.keywords,
+	regions=excluded.regions,
 	orgs=excluded.orgs,
 	org_doc_id=excluded.org_doc_id,
 	org_type=excluded.org_type,
@@ -366,6 +395,11 @@ func (db *YPSDatabase) Search(params SearchRequest) (values SearchResponse, err 
 		assembledParams = append(assembledParams, params.FilterValue)
 		newParamNumber += 1
 	}
+	if params.FilterKey == "region" {
+		whereClauses = append(whereClauses, fmt.Sprintf(`$%d = ANY(regions)`, newParamNumber))
+		assembledParams = append(assembledParams, params.FilterValue)
+		newParamNumber += 1
+	}
 
 	var assembledWhereClause string
 	if len(whereClauses) > 0 {
@@ -408,7 +442,7 @@ FROM entries
 	}
 
 	assembledSearchQuery := fmt.Sprintf(`
-SELECT id, title, authors, start_date, end_date, entry_type, entry_language, array(select entry_language from entries e where e.id=entries.id or entries.id=ANY(alternates)) as languages, %s AS rank
+SELECT id, title, authors, start_date, end_date, entry_type, entry_language, array(select entry_language from entries e where e.id=entries.id or entries.id=ANY(alternates)) as languages, regions, %s AS rank
 FROM entries
 %s
 ORDER BY %s
@@ -430,7 +464,7 @@ OFFSET %d
 
 		var rank float32
 		var langCodes []string
-		err = rows.Scan(&e.ID, &e.Title, &e.Authors, &e.StartDate, &e.EndDate, &e.DocumentType, &e.Language, &langCodes, &rank)
+		err = rows.Scan(&e.ID, &e.Title, &e.Authors, &e.StartDate, &e.EndDate, &e.DocumentType, &e.Language, &langCodes, &e.Regions, &rank)
 		if err != nil {
 			return values, err
 		}

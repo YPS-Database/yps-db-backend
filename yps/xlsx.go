@@ -16,6 +16,7 @@ import (
 type EntriesXLSX struct {
 	file    *xlsxreader.XlsxFile
 	Entries map[string]XlsxEntry
+	Nits    []string
 }
 
 func simplifyColumnName(input string) string {
@@ -209,6 +210,49 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 		} else if strings.HasPrefix(strings.ToLower(youthleddesc), "n/a") {
 			youthled = "N/A"
 		}
+		if youthled == "Unknown" {
+			entries.Nits = append(entries.Nits, fmt.Sprintf("Could not work out the 'youth-led' status for item %s", itemID))
+		}
+
+		// regions
+		var regions []string
+		if getCellValue(row, cols[ypsc.RegionEastSouthAfrica]) == "1" {
+			regions = append(regions, "East and Southern Africa")
+		}
+		if getCellValue(row, cols[ypsc.RegionEastCentralAsia]) == "1" {
+			regions = append(regions, "East and Central Asia")
+		}
+		if getCellValue(row, cols[ypsc.RegionSouthEastAsiaPacific]) == "1" {
+			regions = append(regions, "Southeast Asia and the Pacific")
+		}
+		if getCellValue(row, cols[ypsc.RegionEuropeEurasia]) == "1" {
+			regions = append(regions, "Europe and Eurasia")
+		}
+		if getCellValue(row, cols[ypsc.RegionLatinAmericaCaribbean]) == "1" {
+			regions = append(regions, "Latin America and the Caribbean")
+		}
+		if getCellValue(row, cols[ypsc.RegionMiddleEastNorthAfrica]) == "1" {
+			regions = append(regions, "Middle East and North Africa")
+		}
+		if getCellValue(row, cols[ypsc.RegionNorthAmerica]) == "1" {
+			regions = append(regions, "North America")
+		}
+		if getCellValue(row, cols[ypsc.RegionSouthAsia]) == "1" {
+			regions = append(regions, "South Asia")
+		}
+		if getCellValue(row, cols[ypsc.RegionWestCentralAfrica]) == "1" {
+			regions = append(regions, "West and Central Africa")
+		}
+		if getCellValue(row, cols[ypsc.RegionGlobal]) == "1" {
+			regions = append(regions, "Global")
+		}
+		if getCellValue(row, cols[ypsc.RegionNA]) == "1" {
+			regions = append(regions, "N/A")
+		}
+		if len(regions) < 1 {
+			regions = append(regions, "N/A")
+			entries.Nits = append(entries.Nits, fmt.Sprintf("No regions for item %s, marking as N/A", itemID))
+		}
 
 		// languages need special handling
 		var langs []string
@@ -243,6 +287,7 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 			} else {
 				fmt.Println("can't process", rawDayMonth, "- skipping this date for the import")
 				startDate = fmt.Sprintf("%s-01-01", rawYear)
+				entries.Nits = append(entries.Nits, fmt.Sprintf("Could not work out the start/end dates for item %s", itemID))
 			}
 
 			if endDate == "" {
@@ -266,6 +311,7 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 			Keywords:        keywords,
 			StartDate:       startDate,
 			EndDate:         endDate,
+			Regions:         regions,
 			rawLanguages:    langs,
 			AltLanguageIDs:  altlangIDs,
 			RelatedIDs:      relatedIDs,

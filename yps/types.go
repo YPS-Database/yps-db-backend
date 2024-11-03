@@ -17,6 +17,7 @@ type Entry struct {
 	YouthLed        string    `json:"youth_led"`
 	YouthLedDetails string    `json:"youth_led_details"`
 	Keywords        []string  `json:"keywords"`
+	Regions         []string  `json:"regions"`
 	StartDate       time.Time `json:"start_date"`
 	EndDate         time.Time `json:"end_date"`
 	Language        string    `json:"language"`
@@ -58,6 +59,7 @@ type SearchEntry struct {
 	EndDate            time.Time `json:"end_date"`
 	DocumentType       string    `json:"document_type"`
 	AvailableLanguages []string  `json:"available_languages"`
+	Regions            []string  `json:"regions"`
 	Language           string    `json:"language"`
 }
 
@@ -74,6 +76,7 @@ type XlsxEntry struct {
 	YouthLed        string
 	YouthLedDetails string
 	Keywords        []string
+	Regions         []string
 	StartDate       string
 	EndDate         string
 	Language        string
