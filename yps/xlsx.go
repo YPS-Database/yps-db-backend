@@ -211,7 +211,7 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 			youthled = "N/A"
 		}
 		if youthled == "Unknown" {
-			entries.Nits = append(entries.Nits, fmt.Sprintf("Could not work out the 'youth-led' status for item %s", itemID))
+			entries.Nits = append(entries.Nits, fmt.Sprintf("[Item %s] Could not work out the 'youth-led' status, please make it 'Yes', 'No', 'N/A', or include the text 'Co-authored'.", itemID))
 		}
 
 		// regions
@@ -251,7 +251,7 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 		}
 		if len(regions) < 1 {
 			regions = append(regions, "N/A")
-			entries.Nits = append(entries.Nits, fmt.Sprintf("No regions for item %s, marking as N/A", itemID))
+			entries.Nits = append(entries.Nits, fmt.Sprintf("[Item %s] No regions defined, marking as N/A.", itemID))
 		}
 
 		// languages need special handling
@@ -287,7 +287,7 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 			} else {
 				fmt.Println("can't process", rawDayMonth, "- skipping this date for the import")
 				startDate = fmt.Sprintf("%s-01-01", rawYear)
-				entries.Nits = append(entries.Nits, fmt.Sprintf("Could not work out the start/end dates for item %s", itemID))
+				entries.Nits = append(entries.Nits, fmt.Sprintf("[Item %s] Could not work out the start/end dates.", itemID))
 			}
 
 			if endDate == "" {

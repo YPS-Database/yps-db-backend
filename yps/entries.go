@@ -10,11 +10,13 @@ import (
 )
 
 type ImportTryResponse struct {
-	TotalEntries int                  `json:"total_entries"`
-	NewEntries   int                  `json:"new_entries"`
-	Entries      map[string]XlsxEntry `json:"entries"`
-	OldEntries   map[string]Entry     `json:"old_entries"`
-	Nits         []string             `json:"nits"`
+	TotalEntries      int      `json:"total_entries"`
+	UnmodifiedEntries int      `json:"unmodified_entries"`
+	ModifiedEntries   int      `json:"modified_entries"`
+	NewEntries        int      `json:"new_entries"`
+	DeletedEntries    int      `json:"deleted_entries"`
+	Nits              []string `json:"nits"`
+	FileAlreadyExists bool     `json:"file_already_exists"`
 }
 
 var TheBrowseByFields *BrowseByFieldValues
@@ -42,6 +44,9 @@ func updateYpsDb(c *gin.Context) {
 }
 
 func applyYpsDbUpdate(c *gin.Context) {
+	overwriteRaw, exists := c.GetQuery("overwrite")
+	overwrite := exists && overwriteRaw == "true"
+
 	// load passed db file
 	fileHeader, err := c.FormFile("db")
 	if err != nil {
@@ -61,13 +66,13 @@ func applyYpsDbUpdate(c *gin.Context) {
 
 	s3fn := fmt.Sprintf("dbs/%s", fileHeader.Filename)
 
-	exists, err := TheS3.FileExists(s3fn)
+	exists, err = TheS3.FileExists(s3fn)
 	if err != nil {
 		fmt.Println("Could not check file existence:", err.Error())
 		c.JSON(400, gin.H{"error": "Could not check whether db file exists."})
 		return
 	}
-	if exists {
+	if exists && !overwrite {
 		c.JSON(400, gin.H{"error": "Spreadsheet with this filename already exists. Please rename the file before you upload it."})
 		return
 	}
@@ -107,14 +112,10 @@ func testYpsDbUpdate(c *gin.Context) {
 		return
 	}
 
-	exists, err := TheS3.FileExists(fmt.Sprintf("dbs/%s", fileHeader.Filename))
+	alreadyExists, err := TheS3.FileExists(fmt.Sprintf("dbs/%s", fileHeader.Filename))
 	if err != nil {
 		fmt.Println("Could not check file existence:", err.Error())
 		c.JSON(400, gin.H{"error": "Could not check whether db file exists."})
-		return
-	}
-	if exists {
-		c.JSON(400, gin.H{"error": "Spreadsheet with this filename already exists. Please rename the file before you upload it."})
 		return
 	}
 
@@ -139,14 +140,36 @@ func testYpsDbUpdate(c *gin.Context) {
 		return
 	}
 
-	//TODO(dan): calculate useful lists – changes, unchanged entries, etc…
+	var unmodifiedEntriesCount, modifiedEntriesCount, newEntriesCount, deletedEntriesCount int
+	for id, newEntry := range newEntries.Entries {
+		oldEntry, exists := existingEntries[id]
+		if !exists {
+			newEntriesCount += 1
+			continue
+		}
+
+		if newEntry.Matches(oldEntry) {
+			unmodifiedEntriesCount += 1
+		} else {
+			modifiedEntriesCount += 1
+		}
+	}
+
+	for id := range existingEntries {
+		_, exists := newEntries.Entries[id]
+		if !exists {
+			deletedEntriesCount += 1
+		}
+	}
 
 	c.JSON(http.StatusOK, ImportTryResponse{
-		TotalEntries: len(newEntries.Entries),
-		NewEntries:   len(newEntries.Entries) - len(existingEntries),
-		Entries:      newEntries.Entries,
-		OldEntries:   existingEntries,
-		Nits:         newEntries.Nits,
+		TotalEntries:      len(newEntries.Entries),
+		UnmodifiedEntries: unmodifiedEntriesCount,
+		ModifiedEntries:   modifiedEntriesCount,
+		NewEntries:        newEntriesCount,
+		DeletedEntries:    deletedEntriesCount,
+		Nits:              newEntries.Nits,
+		FileAlreadyExists: alreadyExists,
 	})
 }
 
@@ -165,6 +188,22 @@ func getYpsDbs(c *gin.Context) {
 	c.JSON(http.StatusOK, GetDbFilesResponse{
 		Files: files,
 	})
+}
+
+type GetLatestDbResponse struct {
+	NumberOfEntries   int `json:"number_of_entries"`
+	NumberOfLanguages int `json:"number_of_languages"`
+}
+
+func getLatestYpsDb(c *gin.Context) {
+	info, err := TheDb.GetLatestDbInfo()
+	if err != nil {
+		fmt.Println("Could not get db info:", err.Error())
+		c.JSON(400, gin.H{"error": "Could not get db info"})
+		return
+	}
+
+	c.JSON(http.StatusOK, GetLatestDbResponse(info))
 }
 
 type GetEntryRequest struct {

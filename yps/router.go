@@ -31,6 +31,7 @@ func GetRouter(trustedProxies []string, corsAllowedFrom []string) (router *gin.E
 
 	// DB
 	router.GET("/api/dbs", getYpsDbs)
+	router.GET("/api/db", getLatestYpsDb)
 	router.PUT("/api/db", AdminAuthMiddleware(), updateYpsDb)
 
 	// pages

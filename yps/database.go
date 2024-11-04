@@ -51,6 +51,22 @@ func (db *YPSDatabase) UploadDbFile(filename string, body io.Reader) error {
 		return err
 	}
 
+	// check for existing db file
+	var existingId string
+	err = db.pool.QueryRow(context.Background(), `
+select id
+from spreadsheet_files
+where filename=$1
+`, uploaded.Filename).Scan(&existingId)
+	if err != nil {
+		return err
+	}
+	// file is already in our database, don't bother re-uploading it
+	if existingId != "" {
+		return nil
+	}
+
+	// upload file to db
 	id, err := uuid.NewV7()
 	if err != nil {
 		return err
@@ -61,6 +77,26 @@ insert into spreadsheet_files (id, filename, url, added_at)
 values ($1, $2, $3, $4)
 `, id, uploaded.Filename, uploaded.URL, time.Now())
 	return err
+}
+
+func (db *YPSDatabase) GetLatestDbInfo() (info ypsDbInfo, err error) {
+	err = db.pool.QueryRow(context.Background(), `
+select count(*) from entries
+`).Scan(&info.NumberOfEntries)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Count QueryRow failed: %v\n", err)
+		return info, err
+	}
+
+	err = db.pool.QueryRow(context.Background(), `
+select count(distinct entry_language) from entries
+`).Scan(&info.NumberOfLanguages)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Count QueryRow failed: %v\n", err)
+		return info, err
+	}
+
+	return info, nil
 }
 
 func (db *YPSDatabase) GetDbFiles() (files []ypss3.S3Upload, err error) {

@@ -1,6 +1,9 @@
 package yps
 
-import "time"
+import (
+	"slices"
+	"time"
+)
 
 // entries
 
@@ -85,7 +88,31 @@ type XlsxEntry struct {
 	RelatedIDs      []string
 }
 
+func (newEntry *XlsxEntry) Matches(oldEntry Entry) bool {
+	return (newEntry.Title == oldEntry.Title &&
+		newEntry.Authors == oldEntry.Authors &&
+		newEntry.URL == oldEntry.URL &&
+		slices.Equal(newEntry.OrgPublishers, oldEntry.OrgPublishers) &&
+		newEntry.OrgDocID == oldEntry.OrgDocID &&
+		newEntry.OrgType == oldEntry.OrgType &&
+		newEntry.DocType == oldEntry.DocType &&
+		newEntry.Abstract == oldEntry.Abstract &&
+		newEntry.YouthLed == oldEntry.YouthLed &&
+		newEntry.YouthLedDetails == oldEntry.YouthLedDetails &&
+		slices.Equal(newEntry.Keywords, oldEntry.Keywords) &&
+		slices.Equal(newEntry.Regions, oldEntry.Regions) &&
+		// newEntry.StartDate == oldEntry.StartDate.Format("2006-01-02") &&
+		// newEntry.EndDate == oldEntry.EndDate.Format("2006-01-02") &&
+		newEntry.Language == oldEntry.Language &&
+		slices.Equal(newEntry.RelatedIDs, oldEntry.RelatedIDs))
+}
+
 // others
+
+type ypsDbInfo struct {
+	NumberOfEntries   int
+	NumberOfLanguages int
+}
 
 type Page struct {
 	Content      string
