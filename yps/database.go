@@ -174,7 +174,8 @@ select distinct DATE_PART('year', start_date) AS year from entries where start_d
 
 	// entry type
 	rows, err = db.pool.Query(context.Background(), `
-select entry_type, count(*) as number_of_rows from entries group by entry_type order by number_of_rows desc
+select entry_type, count(*) as number_of_rows from entries group by entry_type order by entry_type asc
+-- number_of_rows desc
 `)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Entry type query failed: %v\n", err)
@@ -189,9 +190,9 @@ select entry_type, count(*) as number_of_rows from entries group by entry_type o
 			fmt.Fprintf(os.Stderr, "Could not cast entry type or count: %v\n", err)
 			return values, err
 		}
-		if count < 10 {
-			break
-		}
+		// if count < 10 {
+		// 	break
+		// }
 		entryTypes = append(entryTypes, entryType)
 	}
 	rows.Close()
