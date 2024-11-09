@@ -5,9 +5,7 @@ import (
 	"strings"
 )
 
-var nameHacks = map[string]string{
-	"portugese": "portuguese",
-}
+var nameHacks = map[string]string{}
 
 var languageCodeMap = [][]string{
 	{"Afrikaans", "Afrikaans", "af"},

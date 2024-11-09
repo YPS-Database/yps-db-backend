@@ -70,14 +70,23 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 	entries.file = file
 	entries.Entries = make(map[string]XlsxEntry)
 
-	if len(entries.file.Sheets) != 1 {
-		return nil, errors.New("file must have exactly one sheet")
+	if len(entries.file.Sheets) < 1 {
+		return nil, errors.New("no sheets found in the supplied database")
 	}
+
+	sheetToUse := 0
+	for i, sheetName := range entries.file.Sheets {
+		if strings.Contains(strings.ToLower(sheetName), "database") {
+			sheetToUse = i
+		}
+	}
+
+	entries.Nits = append(entries.Nits, fmt.Sprintf("Reading sheet %d (%s)", sheetToUse, file.Sheets[sheetToUse]))
 
 	// read entries columns
 	cols := make(map[ypsc.ColumnType]string)
 
-	for row := range file.ReadRows(file.Sheets[0]) {
+	for row := range file.ReadRows(file.Sheets[sheetToUse]) {
 		if row.Error != nil {
 			return nil, fmt.Errorf("error on row [%d]: %s", row.Index, row.Error.Error())
 		}
@@ -110,7 +119,7 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 					thisColumnType = ypsc.AlternateLanguageEntries
 				} else if name == "related documents" {
 					thisColumnType = ypsc.RelatedEntries
-				} else if strings.HasPrefix(name, "youth-led") {
+				} else if strings.HasPrefix(name, "youth-led") || strings.HasPrefix(name, "youth authored") {
 					thisColumnType = ypsc.YouthInvolvement
 				} else if strings.HasPrefix(name, "abstract") {
 					thisColumnType = ypsc.Abstract
@@ -200,18 +209,18 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 
 		// work out whether the description is youth led or not
 		youthled := "Unknown"
-		if strings.HasPrefix(strings.ToLower(youthleddesc), "yes") || strings.HasPrefix(strings.ToLower(youthleddesc), "youth-led") {
-			youthled = "Yes"
-		} else if strings.Contains(strings.ToLower(youthleddesc), "co-authored") || strings.Contains(strings.ToLower(youthleddesc), "co authored") {
-			// this check is before No, because "No, co-authored with adults" should be Co-authored
+		if strings.Contains(strings.ToLower(youthleddesc), "co-authored") || strings.Contains(strings.ToLower(youthleddesc), "co authored") {
+			// this check is before No, because "No, co-authored with adults" and "Yes, co-authored with adults" should both be Co-authored
 			youthled = "Co-authored"
+		} else if strings.HasPrefix(strings.ToLower(youthleddesc), "yes") || strings.HasPrefix(strings.ToLower(youthleddesc), "youth-led") {
+			youthled = "Yes"
 		} else if strings.HasPrefix(strings.ToLower(youthleddesc), "no") {
 			youthled = "No"
 		} else if strings.HasPrefix(strings.ToLower(youthleddesc), "n/a") {
 			youthled = "N/A"
 		}
 		if youthled == "Unknown" {
-			entries.Nits = append(entries.Nits, fmt.Sprintf("[Item %s] Could not work out the 'youth-led' status, please make it 'Yes', 'No', 'N/A', or include the text 'Co-authored'.", itemID))
+			entries.Nits = append(entries.Nits, fmt.Sprintf("[Item %s] Could not work out the 'youth-led' status, please make it start with 'Yes' or 'No', or include the text 'Co-authored'.", itemID))
 		}
 
 		// regions

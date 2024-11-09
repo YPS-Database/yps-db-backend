@@ -2,6 +2,8 @@ package yps
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -58,23 +60,30 @@ select id
 from spreadsheet_files
 where filename=$1
 `, uploaded.Filename).Scan(&existingId)
-	if err != nil {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}
-	// file is already in our database, don't bother re-uploading it
-	if existingId != "" {
-		return nil
+
+	// update existing if exists, else upload it brand new
+	id := existingId
+	if id == "" {
+		newId, err := uuid.NewV7()
+		if err != nil {
+			return err
+		}
+		id = newId.String()
 	}
 
 	// upload file to db
-	id, err := uuid.NewV7()
-	if err != nil {
-		return err
-	}
-
 	_, err = db.pool.Exec(context.Background(), `
 insert into spreadsheet_files (id, filename, url, added_at)
 values ($1, $2, $3, $4)
+on conflict (id)
+do update
+set
+	filename=excluded.filename,
+	url=excluded.url,
+	added_at=excluded.added_at
 `, id, uploaded.Filename, uploaded.URL, time.Now())
 	return err
 }
