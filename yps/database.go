@@ -253,6 +253,7 @@ from entries
 func (db *YPSDatabase) GetSingleEntry(id string) (entry LookedUpEntry, err error) {
 	entry.Files = []EntryFile{}
 	entry.Alternates = make(map[string]LookedUpAltLanguageEntry)
+	entry.Related = make(map[string]string)
 
 	// get the main entry
 	err = db.pool.QueryRow(context.Background(), `
@@ -297,7 +298,31 @@ where id=any($1)
 	}
 	rows.Close()
 
-	//TODO(dan): look up related docs and files for this language and others
+	// get the related entries
+	rows, err = db.pool.Query(context.Background(), `
+select id, title
+from entries
+where id=any($1)
+`, entry.Entry.RelatedIDs)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Query for alt rows failed: %v\n", err)
+		return entry, err
+	}
+	for rows.Next() {
+		var reID, reTitle string
+
+		err = rows.Scan(&reID, &reTitle)
+		if err != nil {
+			return entry, err
+		}
+
+		if reID != id {
+			entry.Related[reID] = reTitle
+		}
+	}
+	rows.Close()
+
+	//TODO(dan): look up related files for this language and others
 
 	return entry, err
 }

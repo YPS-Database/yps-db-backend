@@ -45,12 +45,15 @@ type LookedUpEntry struct {
 	Files []EntryFile `json:"files"`
 
 	Alternates map[string]LookedUpAltLanguageEntry `json:"alternates"`
+
+	Related map[string]string `json:"related"`
 }
 
 func (luEntry *LookedUpEntry) AsEntryResponse() (response GetEntryResponse) {
 	response.Entry = luEntry.Entry
 	response.Files = luEntry.Files
 	response.Alternates = luEntry.Alternates
+	response.Related = luEntry.Related
 	return response
 }
 
