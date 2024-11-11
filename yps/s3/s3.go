@@ -70,3 +70,7 @@ func (ys3 *YPSS3) FileExists(key string) (bool, error) {
 	fmt.Println("Other type of error encountered from S3 HeadObject:", apiError.ErrorCode(), err)
 	return true, err
 }
+
+func (ys3 *YPSS3) EntryFileURL(entryID, filename string) string {
+	return fmt.Sprintf("%sentries/%s/%s", ys3.uploadURLPrefix, entryID, filename)
+}

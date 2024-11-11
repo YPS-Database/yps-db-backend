@@ -42,6 +42,7 @@ func GetRouter(trustedProxies []string, corsAllowedFrom []string) (router *gin.E
 	router.GET("/api/entry/:slug", getEntry)
 	router.GET("/api/browseby", getBrowseByFields)
 	router.GET("/api/search", searchEntries)
+	router.PUT("/api/import-files", AdminAuthMiddleware(), importFileList)
 
 	return router
 }

@@ -243,3 +243,23 @@ func getBrowseByFields(c *gin.Context) {
 		Values: *TheBrowseByFields,
 	})
 }
+
+type ImportFileListParams struct {
+	Entries map[string][]string `json:"entries" binding:"required"`
+}
+
+func importFileList(c *gin.Context) {
+	var params ImportFileListParams
+	if err := c.ShouldBindJSON(&params); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := TheDb.ImportFileList(FileList(params))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}

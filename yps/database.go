@@ -308,6 +308,43 @@ where id=any($1)
 	}
 	rows.Close()
 
+	// get all files
+	all_ids := slices.Concat(entry.Entry.AltLanguageIDs, []string{id}) // not necessary, but just in case
+
+	rows, err = db.pool.Query(context.Background(), `
+select entry_id, filename, url
+from entry_files
+where entry_id=any($1)
+`, all_ids)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Query for files failed: %v\n", err)
+		return entry, err
+	}
+	for rows.Next() {
+		var entryID, filename, url string
+
+		err = rows.Scan(&entryID, &filename, &url)
+		if err != nil {
+			return entry, err
+		}
+
+		newFile := EntryFile{
+			Filename: filename,
+			URL:      url,
+		}
+		if entryID == id {
+			entry.Files = append(entry.Files, newFile)
+		} else {
+			for leID, le := range entry.Alternates {
+				if entryID == leID {
+					le.Files = append(le.Files, newFile)
+					entry.Alternates[leID] = le
+				}
+			}
+		}
+	}
+	rows.Close()
+
 	// get the related entries
 	rows, err = db.pool.Query(context.Background(), `
 select id, title
@@ -352,12 +389,11 @@ func (db *YPSDatabase) UploadEntries(entryMap map[string]XlsxEntry) error {
 	}
 	source := pgx.CopyFromRows(rows)
 
-	// delete rows from temp table on exiting this call
+	// delete rows from temp table
 	_, err := db.pool.Exec(context.Background(), `truncate table temp_insert_entries`)
 	if err != nil {
 		return err
 	}
-	// defer db.pool.Exec(context.Background(), `truncate table temp_insert_entries`)
 
 	fmt.Println("starting copy into temp table")
 	_, err = db.pool.CopyFrom(context.Background(), pgx.Identifier{`temp_insert_entries`}, []string{
@@ -413,6 +449,50 @@ where not exists (
 	}
 
 	err = UpdateBrowseByFields()
+
+	return err
+}
+
+func (db *YPSDatabase) ImportFileList(fileList FileList) (err error) {
+	// assemble rows slice
+	var rows [][]any
+	for id, entry := range fileList.Entries {
+		for _, filename := range entry {
+			rows = append(rows, []any{
+				id, filename, TheS3.EntryFileURL(id, filename),
+			})
+		}
+	}
+	source := pgx.CopyFromRows(rows)
+
+	// delete rows from temp table
+	_, err = db.pool.Exec(context.Background(), `truncate table temp_insert_entry_files`)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("starting copy into temp table")
+	_, err = db.pool.CopyFrom(context.Background(), pgx.Identifier{`temp_insert_entry_files`}, []string{
+		"entry_id", "filename", "url"}, source)
+	fmt.Println("ended copy into temp table")
+
+	if err != nil {
+		return err
+	}
+
+	// transfer rows to real table
+	_, err = db.pool.Exec(context.Background(), `
+	insert into entry_files (entry_id, filename, url)
+	select entry_id, filename, url
+	from temp_insert_entry_files
+	on conflict (entry_id, filename)
+	do update
+	set
+		url=excluded.url
+	`)
+	if err != nil {
+		return err
+	}
 
 	return err
 }

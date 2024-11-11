@@ -112,6 +112,10 @@ func (newEntry *XlsxEntry) Matches(oldEntry Entry) bool {
 
 // others
 
+type FileList struct {
+	Entries map[string][]string
+}
+
 type ypsDbInfo struct {
 	NumberOfEntries   int
 	NumberOfLanguages int
