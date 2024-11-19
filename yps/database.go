@@ -14,7 +14,6 @@ import (
 	"time"
 
 	ypsl "github.com/YPS-Database/yps-db-backend/yps/languages"
-	ypss3 "github.com/YPS-Database/yps-db-backend/yps/s3"
 	uuid "github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -108,11 +107,11 @@ select count(distinct entry_language) from entries
 	return info, nil
 }
 
-func (db *YPSDatabase) GetDbFiles() (files []ypss3.S3Upload, err error) {
-	files = []ypss3.S3Upload{}
+func (db *YPSDatabase) GetDbFiles() (files []DbFile, err error) {
+	files = []DbFile{}
 
 	rows, err := db.pool.Query(context.Background(), `
-select filename, url
+select id, filename, url
 from spreadsheet_files
 order by added_at desc
 `)
@@ -123,9 +122,9 @@ order by added_at desc
 	defer rows.Close()
 
 	for rows.Next() {
-		var thisFile ypss3.S3Upload
+		var thisFile DbFile
 
-		err = rows.Scan(&thisFile.Filename, &thisFile.URL)
+		err = rows.Scan(&thisFile.ID, &thisFile.Filename, &thisFile.URL)
 		if err != nil {
 			return files, err
 		}
@@ -469,6 +468,15 @@ where not exists (
 	}
 
 	err = UpdateBrowseByFields()
+
+	return err
+}
+
+func (db *YPSDatabase) RemoveDbFile(id string) (err error) {
+	_, err = db.pool.Exec(context.Background(), `
+delete from spreadsheet_files
+where id = $1
+`, id)
 
 	return err
 }

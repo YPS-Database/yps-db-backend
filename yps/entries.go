@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	ypss3 "github.com/YPS-Database/yps-db-backend/yps/s3"
 	"github.com/gin-gonic/gin"
 )
 
@@ -173,8 +172,30 @@ func testYpsDbUpdate(c *gin.Context) {
 	})
 }
 
+type DeleteYpsDbRequest struct {
+	ID string `uri:"slug" binding:"required"`
+}
+
+func deleteYpsDb(c *gin.Context) {
+	var req DeleteYpsDbRequest
+	if err := c.ShouldBindUri(&req); err != nil {
+		fmt.Println("Could not get entry URI binding:", err.Error())
+		c.JSON(400, gin.H{"error": "Entry must be given"})
+		return
+	}
+
+	err := TheDb.RemoveDbFile(req.ID)
+	if err != nil {
+		fmt.Println("Could not delete db file:", err.Error())
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"ok": true})
+}
+
 type GetDbFilesResponse struct {
-	Files []ypss3.S3Upload `json:"files"`
+	Files []DbFile `json:"files"`
 }
 
 func getYpsDbs(c *gin.Context) {

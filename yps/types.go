@@ -3,6 +3,8 @@ package yps
 import (
 	"slices"
 	"time"
+
+	ypss3 "github.com/YPS-Database/yps-db-backend/yps/s3"
 )
 
 // entries
@@ -111,6 +113,11 @@ func (newEntry *XlsxEntry) Matches(oldEntry Entry) bool {
 }
 
 // others
+
+type DbFile struct {
+	ypss3.S3Upload
+	ID string `json:"id"`
+}
 
 type FileList struct {
 	Entries map[string][]string
