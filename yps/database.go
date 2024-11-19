@@ -497,6 +497,28 @@ func (db *YPSDatabase) ImportFileList(fileList FileList) (err error) {
 	return err
 }
 
+func (db *YPSDatabase) AddEntryFile(entry, filename, url string) (err error) {
+	_, err = db.pool.Exec(context.Background(), `
+insert into entry_files (entry_id, filename, url)
+values ($1, $2, $3)
+on conflict (entry_id, filename)
+do update
+set
+	url=excluded.url
+	`, entry, filename, url)
+
+	return err
+}
+
+func (db *YPSDatabase) RemoveEntryFile(entry, filename string) (err error) {
+	_, err = db.pool.Exec(context.Background(), `
+delete from entry_files
+where entry_id = $1 and filename = $2
+`, entry, filename)
+
+	return err
+}
+
 func (db *YPSDatabase) Search(params SearchRequest) (values SearchResponse, err error) {
 	values.Entries = []SearchEntry{}
 

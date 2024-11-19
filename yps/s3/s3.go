@@ -55,6 +55,15 @@ func (ys3 *YPSS3) Upload(key string, body io.Reader) (*S3Upload, error) {
 	}, nil
 }
 
+func (ys3 *YPSS3) Delete(key string) error {
+	name := fmt.Sprintf("%s%s", ys3.uploadKeyPrefix, key)
+	_, err := ys3.client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+		Bucket: aws.String(ys3.bucket),
+		Key:    aws.String(name),
+	})
+	return err
+}
+
 func (ys3 *YPSS3) FileExists(key string) (bool, error) {
 	name := fmt.Sprintf("%s%s", ys3.uploadKeyPrefix, key)
 	_, err := ys3.client.HeadObject(context.TODO(), &s3.HeadObjectInput{
@@ -69,6 +78,10 @@ func (ys3 *YPSS3) FileExists(key string) (bool, error) {
 	}
 	fmt.Println("Other type of error encountered from S3 HeadObject:", apiError.ErrorCode(), err)
 	return true, err
+}
+
+func (ys3 *YPSS3) EntryFileKey(entryID, filename string) string {
+	return fmt.Sprintf("entries/%s/%s", entryID, filename)
 }
 
 func (ys3 *YPSS3) EntryFileURL(entryID, filename string) string {

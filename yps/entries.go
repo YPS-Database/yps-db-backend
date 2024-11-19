@@ -234,6 +234,97 @@ func getEntry(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+type UploadEntryFileRequest struct {
+	ID string `uri:"slug" binding:"required"`
+}
+
+func uploadEntryFile(c *gin.Context) {
+	var req UploadEntryFileRequest
+	if err := c.ShouldBindUri(&req); err != nil {
+		fmt.Println("Could not get entry URI binding:", err.Error())
+		c.JSON(400, gin.H{"error": "Entry must be given"})
+		return
+	}
+
+	// load passed upload file
+	fileHeader, err := c.FormFile("upload")
+	if err != nil {
+		fmt.Println("Could not get file from uploadEntryFile call:", err.Error())
+		c.JSON(400, gin.H{"error": "Could not get 'upload' file in form body."})
+		return
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		fmt.Println("Could not open file from uploadEntryFile call:", err.Error())
+		c.JSON(400, gin.H{"error": "Could not open 'upload' file in form body."})
+		return
+	}
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(file)
+
+	s3fn := TheS3.EntryFileKey(req.ID, fileHeader.Filename)
+	fmt.Println(s3fn)
+
+	uploaded, err := TheS3.Upload(s3fn, bytes.NewReader(buf.Bytes()))
+	if err != nil {
+		fmt.Println("Could not upload new entry file:", err.Error())
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = TheDb.AddEntryFile(req.ID, fileHeader.Filename, uploaded.URL)
+	if err != nil {
+		fmt.Println("Could not add new entry file:", err.Error())
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"ok": true})
+}
+
+type DeleteEntryFileRequest struct {
+	ID string `uri:"slug" binding:"required"`
+}
+
+type DeleteEntryFileParams struct {
+	Filename string `json:"file" binding:"required"`
+}
+
+func deleteEntryFile(c *gin.Context) {
+	var req DeleteEntryFileRequest
+	if err := c.ShouldBindUri(&req); err != nil {
+		fmt.Println("Could not get entry URI binding:", err.Error())
+		c.JSON(400, gin.H{"error": "Entry must be given"})
+		return
+	}
+
+	var params DeleteEntryFileParams
+	if err := c.ShouldBindJSON(&params); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	fmt.Println("Deleting file", params.Filename, "from item", req.ID)
+
+	s3fn := TheS3.EntryFileKey(req.ID, params.Filename)
+	err := TheS3.Delete(s3fn)
+	if err != nil {
+		fmt.Println("Could not get delete entry from S3:", err.Error())
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = TheDb.RemoveEntryFile(req.ID, params.Filename)
+	if err != nil {
+		fmt.Println("Could not get remove entry from db:", err.Error())
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
 type BrowseByFieldsResponse struct {
 	Values BrowseByFieldValues `json:"values"`
 }
