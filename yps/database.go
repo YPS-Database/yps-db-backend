@@ -541,6 +541,7 @@ where entry_id = $1 and filename = $2
 
 func (db *YPSDatabase) Search(params SearchRequest) (values SearchResponse, err error) {
 	values.Entries = []SearchEntry{}
+	values.Filters = []SearchFilter{}
 
 	var assembledParams []any
 	newParamNumber := 1
@@ -617,6 +618,38 @@ FROM entries
 	values.TotalEntries = totalEntries
 	values.TotalPages = int(math.Ceil(float64(totalEntries) / float64(DefaultEntriesPerPage)))
 
+	// youth-led filter
+	assembledYouthLedQuery := fmt.Sprintf(`
+SELECT youth_led, count(*)
+FROM entries
+%s
+GROUP BY youth_led
+ORDER BY youth_led desc
+`, assembledWhereClause)
+
+	rows, err := db.pool.Query(context.Background(), assembledYouthLedQuery, assembledParams...)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Youth-led Query failed: %v\n", err)
+		return values, err
+	}
+
+	youthLed := SearchFilter{
+		Key: "youth_led",
+	}
+	for rows.Next() {
+		var fv SearchFilterValue
+
+		err = rows.Scan(&fv.Value, &fv.Count)
+		if err != nil {
+			return values, err
+		}
+		youthLed.Values = append(youthLed.Values, fv)
+	}
+	rows.Close()
+	if len(youthLed.Values) > 0 {
+		values.Filters = append(values.Filters, youthLed)
+	}
+
 	// search for actual entries
 	startEntry := max(params.Page-1, 0) * DefaultEntriesPerPage
 	values.StartEntry = startEntry + 1
@@ -645,7 +678,7 @@ OFFSET %d
 
 	fmt.Println("SEARCH:", []any{assembledSearchQuery, len(assembledParams), assembledParams})
 
-	rows, err := db.pool.Query(context.Background(), assembledSearchQuery, assembledParams...)
+	rows, err = db.pool.Query(context.Background(), assembledSearchQuery, assembledParams...)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Search Query failed: %v\n", err)
 		return values, err

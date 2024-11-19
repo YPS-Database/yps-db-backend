@@ -17,13 +17,24 @@ type SearchRequest struct {
 	Page          int    `form:"page"`
 }
 
+type SearchFilterValue struct {
+	Value string `json:"value"`
+	Count int    `json:"count"`
+}
+
+type SearchFilter struct {
+	Key    string              `json:"key"`
+	Values []SearchFilterValue `json:"values"`
+}
+
 type SearchResponse struct {
-	Page         int           `json:"page"`
-	TotalPages   int           `json:"total_pages"`
-	TotalEntries int           `json:"total_entries"`
-	StartEntry   int           `json:"start_entry"`
-	EndEntry     int           `json:"end_entry"`
-	Entries      []SearchEntry `json:"entries"`
+	Page         int            `json:"page"`
+	TotalPages   int            `json:"total_pages"`
+	TotalEntries int            `json:"total_entries"`
+	StartEntry   int            `json:"start_entry"`
+	EndEntry     int            `json:"end_entry"`
+	Entries      []SearchEntry  `json:"entries"`
+	Filters      []SearchFilter `json:"filters"`
 }
 
 func searchEntries(c *gin.Context) {
