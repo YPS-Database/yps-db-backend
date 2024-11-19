@@ -146,11 +146,31 @@ order by added_at desc
 func (db *YPSDatabase) GetBrowseByFields() (values BrowseByFieldValues, err error) {
 	values = make(BrowseByFieldValues)
 
-	// always set youth-led to have this order
-	values["youth_led"] = []string{"Yes", "Co-authored", "No", "N/A"}
+	// youth-led
+	rows, err := db.pool.Query(context.Background(), `
+select distinct youth_led from entries order by youth_led desc
+`)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Youth-led query failed: %v\n", err)
+		return values, err
+	}
+	var youthLed []string
+	for rows.Next() {
+		var youth string
+		err = rows.Scan(&youth)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Could not cast youth: %v\n", err)
+			return values, err
+		}
+		youthLed = append(youthLed, youth)
+	}
+	rows.Close()
+	if len(youthLed) > 0 {
+		values["youth_led"] = youthLed
+	}
 
 	// year
-	rows, err := db.pool.Query(context.Background(), `
+	rows, err = db.pool.Query(context.Background(), `
 select distinct DATE_PART('year', start_date) AS year from entries where start_date > '1800-01-01' order by year desc
 `)
 	if err != nil {
@@ -559,7 +579,7 @@ func (db *YPSDatabase) Search(params SearchRequest) (values SearchResponse, err 
 		newParamNumber += 1
 	}
 	if params.FilterKey == "youth_led" {
-		whereClauses = append(whereClauses, fmt.Sprintf(`youth_led_distilled = $%d`, newParamNumber))
+		whereClauses = append(whereClauses, fmt.Sprintf(`youth_led = $%d`, newParamNumber))
 		assembledParams = append(assembledParams, params.FilterValue)
 		newParamNumber += 1
 	}
