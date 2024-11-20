@@ -47,5 +47,12 @@ func GetRouter(trustedProxies []string, corsAllowedFrom []string) (router *gin.E
 	router.GET("/api/search", searchEntries)
 	router.PUT("/api/import-files", AdminAuthMiddleware(), importFileList)
 
+	router.NoRoute(func(c *gin.Context) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Page not found."})
+	})
+	router.NoMethod(func(c *gin.Context) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Page not found."})
+	})
+
 	return router
 }
