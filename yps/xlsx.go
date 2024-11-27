@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"time"
 
@@ -40,6 +41,19 @@ func getCellValue(row xlsxreader.Row, column string) string {
 		}
 	}
 	return ""
+}
+
+func parseDayFromString(input string) (day string, err error) {
+	for _, sub := range strings.Split(input, " ") {
+		num, err := strconv.Atoi(sub)
+
+		if err == nil && num > 0 && num < 31 {
+			day = strconv.Itoa(num)
+			return day, nil
+		}
+	}
+
+	return day, errors.New("Could not parse day")
 }
 
 var monthNameToNumber = map[string]int{
@@ -294,6 +308,50 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 			} else if monthNameToNumber[strings.ToLower(rawDayMonth)] != 0 {
 				startDate = fmt.Sprintf("%s-%d-01", rawYear, monthNameToNumber[strings.ToLower(rawDayMonth)])
 			} else {
+				monthList := strings.Split(strings.ToLower(rawDayMonth), "-")
+				if len(monthList) == 2 {
+					var startMonth, endMonth string
+					startDay := "01"
+					endDay := "01"
+
+					// parse month
+					for monthName, monthNumber := range monthNameToNumber {
+						if strings.Contains(monthList[0], monthName) {
+							startMonth = strconv.Itoa(monthNumber)
+						}
+						if strings.Contains(monthList[1], monthName) {
+							endMonth = strconv.Itoa(monthNumber)
+						}
+
+						if startMonth == "" && endMonth != "" {
+							startMonth = endMonth
+						}
+						if endMonth == "" && startMonth != "" {
+							endMonth = startMonth
+						}
+					}
+
+					// parse day
+					parsedDay, err := parseDayFromString(monthList[0])
+					if err == nil {
+						startDay = parsedDay
+					}
+
+					parsedDay, err = parseDayFromString(monthList[1])
+					if err == nil {
+						endDay = parsedDay
+					} else if startMonth == endMonth {
+						endDay = startDay
+					}
+
+					if startMonth != "" && endMonth != "" {
+						startDate = fmt.Sprintf("%s-%s-%s", rawYear, startMonth, startDay)
+						endDate = fmt.Sprintf("%s-%s-%s", rawYear, endMonth, endDay)
+					}
+				}
+			}
+
+			if startDate == "" {
 				fmt.Println("can't process", rawDayMonth, "- skipping this date for the import")
 				startDate = fmt.Sprintf("%s-01-01", rawYear)
 				entries.Nits = append(entries.Nits, fmt.Sprintf("[Item %s] Could not work out the start/end dates.", itemID))
