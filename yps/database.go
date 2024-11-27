@@ -658,6 +658,43 @@ ORDER BY youth_led desc
 		values.Filters = append(values.Filters, youthLed)
 	}
 
+	// region filter
+	assembledRegionQuery := fmt.Sprintf(`
+SELECT region_name, count(*)
+FROM entries cross join lateral
+  unnest(entries.regions) region_name
+%s
+GROUP BY region_name
+ORDER BY CASE
+	WHEN region_name = 'Global' THEN 2
+	WHEN region_name = 'N/A' THEN 3
+	ELSE 1 END,
+	region_name asc
+`, assembledWhereClause)
+
+	rows, err = db.pool.Query(context.Background(), assembledRegionQuery, assembledParams...)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Region Query failed: %v\n", err)
+		return values, err
+	}
+
+	region := SearchFilter{
+		Key: "region",
+	}
+	for rows.Next() {
+		var fv SearchFilterValue
+
+		err = rows.Scan(&fv.Value, &fv.Count)
+		if err != nil {
+			return values, err
+		}
+		region.Values = append(region.Values, fv)
+	}
+	rows.Close()
+	if len(region.Values) > 0 {
+		values.Filters = append(values.Filters, region)
+	}
+
 	// search for actual entries
 	startEntry := max(params.Page-1, 0) * DefaultEntriesPerPage
 	values.StartEntry = startEntry + 1
