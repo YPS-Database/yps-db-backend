@@ -291,8 +291,6 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 			langs = append(langs, languageCode)
 		}
 
-		//TODO(dan): process regions
-
 		// start and end dates
 		var startDate, endDate string
 		rawYear := strings.TrimSpace(getCellValue(row, cols[ypsc.Year]))
