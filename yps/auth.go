@@ -72,8 +72,11 @@ func login(c *gin.Context) {
 
 	if level == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"status": "unauthorized"})
+		LogFailedLoginAttempt(c.ClientIP())
 		return
 	}
+
+	LogSuccessfulLoginAttempt(level)
 
 	token := paseto.NewToken()
 	token.SetIssuedAt(time.Now())

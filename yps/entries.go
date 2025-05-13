@@ -97,6 +97,10 @@ func applyYpsDbUpdate(c *gin.Context) {
 		return
 	}
 
+	Log(LogLevelInfo, "database-update", "Applied database update", map[string]string{
+		"filename": fileHeader.Filename,
+	})
+
 	//TODO(dan): upload xlsx file to S3, etc…
 
 	c.JSON(200, gin.H{"ok": true})
@@ -161,7 +165,7 @@ func testYpsDbUpdate(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusOK, ImportTryResponse{
+	response := ImportTryResponse{
 		TotalEntries:      len(newEntries.Entries),
 		UnmodifiedEntries: unmodifiedEntriesCount,
 		ModifiedEntries:   modifiedEntriesCount,
@@ -169,7 +173,11 @@ func testYpsDbUpdate(c *gin.Context) {
 		DeletedEntries:    deletedEntriesCount,
 		Nits:              newEntries.Nits,
 		FileAlreadyExists: alreadyExists,
-	})
+	}
+
+	Log(LogLevelInfo, "database-update-test", "Tested database update", response)
+
+	c.JSON(http.StatusOK, response)
 }
 
 type DeleteYpsDbRequest struct {
@@ -190,6 +198,10 @@ func deleteYpsDb(c *gin.Context) {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
+
+	Log(LogLevelInfo, "database-delete", "Deleted database file", map[string]string{
+		"database_id": req.ID,
+	})
 
 	c.JSON(http.StatusCreated, gin.H{"ok": true})
 }
@@ -301,6 +313,11 @@ func uploadEntryFile(c *gin.Context) {
 		return
 	}
 
+	Log(LogLevelInfo, "entry-file-upload", "Added file to entry", map[string]string{
+		"entry":    req.ID,
+		"filename": fileHeader.Filename,
+	})
+
 	c.JSON(http.StatusCreated, gin.H{"ok": true})
 }
 
@@ -343,6 +360,11 @@ func deleteEntryFile(c *gin.Context) {
 		return
 	}
 
+	Log(LogLevelInfo, "entry-file-delete", "Deleted file from entry", map[string]string{
+		"entry":    req.ID,
+		"filename": params.Filename,
+	})
+
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -372,6 +394,8 @@ func importFileList(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	Log(LogLevelInfo, "entry-files", "Imported new bulk file list", nil)
 
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

@@ -68,6 +68,10 @@ func editPage(c *gin.Context) {
 		return
 	}
 
+	Log(LogLevelInfo, "page-update", "Updated page "+req.ID, map[string]string{
+		"page": req.ID,
+	})
+
 	c.JSON(http.StatusOK, PageResponse{
 		Updated: time.Now().Unix(),
 	})

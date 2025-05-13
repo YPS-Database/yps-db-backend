@@ -29,6 +29,9 @@ func GetRouter(trustedProxies []string, corsAllowedFrom []string) (router *gin.E
 	router.GET("/api/ping", ping)
 	router.POST("/api/auth", login)
 
+	// logs
+	router.GET("/api/logs", getLogs)
+
 	// DB
 	router.GET("/api/dbs", getYpsDbs)
 	router.GET("/api/db", getLatestYpsDb)
