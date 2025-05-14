@@ -1,6 +1,6 @@
 CREATE TABLE logs (
   id SERIAL PRIMARY KEY,
-  ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ts TIMESTAMP NOT NULL DEFAULT (now() at time zone 'utc'),
   log_level VARCHAR(20) NOT NULL CHECK(log_level IN ('DEBUG', 'INFO', 'WARNING', 'ERROR')),
   
   -- e.g. login, import_database, etc
