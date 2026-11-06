@@ -47,8 +47,8 @@ func parseDayFromString(input string) (day string, err error) {
 	for _, sub := range strings.Split(input, " ") {
 		num, err := strconv.Atoi(sub)
 
-		if err == nil && num > 0 && num < 31 {
-			day = strconv.Itoa(num)
+		if err == nil && num > 0 && num <= 31 {
+			day = fmt.Sprintf("%02d", num)
 			return day, nil
 		}
 	}
@@ -58,17 +58,29 @@ func parseDayFromString(input string) (day string, err error) {
 
 var monthNameToNumber = map[string]int{
 	"january":   1,
+	"jan":       1,
 	"february":  2,
+	"feb":       2,
 	"march":     3,
+	"mar":       3,
 	"april":     4,
+	"apr":       4,
 	"may":       5,
 	"june":      6,
+	"jun":       6,
 	"july":      7,
+	"jul":       7,
 	"august":    8,
+	"aug":       8,
 	"september": 9,
+	"sep":       9,
+	"sept":      9,
 	"october":   10,
+	"oct":       10,
 	"november":  11,
+	"nov":       11,
 	"december":  12,
+	"dec":       12,
 }
 
 func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
@@ -293,7 +305,7 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 
 		// start and end dates
 		var startDate, endDate string
-		rawYear := strings.TrimSpace(getCellValue(row, cols[ypsc.Year]))
+		rawYear := strings.Split(strings.TrimSpace(getCellValue(row, cols[ypsc.Year])), ".")[0] // if it parses as e.g. 2024.0, ignore the '.0'
 		rawDayMonth := strings.TrimSpace(getCellValue(row, cols[ypsc.DayMonth]))
 		if rawYear != "N/A" {
 			// try scanning the time. this is a quirk with how dates are entered in the db file
@@ -304,9 +316,11 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 			} else if rawDayMonth == "N/A" {
 				startDate = fmt.Sprintf("%s-01-01", rawYear)
 			} else if monthNameToNumber[strings.ToLower(rawDayMonth)] != 0 {
-				startDate = fmt.Sprintf("%s-%d-01", rawYear, monthNameToNumber[strings.ToLower(rawDayMonth)])
+				startDate = fmt.Sprintf("%s-%02d-01", rawYear, monthNameToNumber[strings.ToLower(rawDayMonth)])
 			} else {
-				monthList := strings.Split(strings.ToLower(rawDayMonth), "-")
+				// normalizedDayMonth contains no en/em
+				normalizedDayMonth := strings.ReplaceAll(strings.ReplaceAll(rawDayMonth, "–", "-"), "—", "-")
+				monthList := strings.Split(strings.ToLower(normalizedDayMonth), "-")
 				if len(monthList) == 2 {
 					var startMonth, endMonth string
 					startDay := "01"
@@ -315,10 +329,10 @@ func ReadEntriesFile(input io.Reader) (*EntriesXLSX, error) {
 					// parse month
 					for monthName, monthNumber := range monthNameToNumber {
 						if strings.Contains(monthList[0], monthName) {
-							startMonth = strconv.Itoa(monthNumber)
+							startMonth = fmt.Sprintf("%02d", monthNumber)
 						}
 						if strings.Contains(monthList[1], monthName) {
-							endMonth = strconv.Itoa(monthNumber)
+							endMonth = fmt.Sprintf("%02d", monthNumber)
 						}
 
 						if startMonth == "" && endMonth != "" {

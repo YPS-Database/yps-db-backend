@@ -438,8 +438,14 @@ func (db *YPSDatabase) UploadEntries(entryMap map[string]XlsxEntry) error {
 	// assemble rows slice
 	var rows [][]any
 	for id, entry := range entryMap {
-		startDate, _ := time.Parse(time.DateOnly, entry.StartDate)
-		endDate, _ := time.Parse(time.DateOnly, entry.EndDate)
+		startDate, err := time.Parse(time.DateOnly, entry.StartDate)
+		if entry.StartDate != "" && err != nil {
+			fmt.Fprintf(os.Stderr, "UploadEntry: Error parsing start date for entry %s: %v - skipping date for entry\n", id, err)
+		}
+		endDate, err := time.Parse(time.DateOnly, entry.EndDate)
+		if entry.EndDate != "" && err != nil {
+			fmt.Fprintf(os.Stderr, "UploadEntry: Error parsing end date for entry %s: %v - skipping date for entry\n", id, err)
+		}
 		rows = append(rows, []any{
 			id, entry.URL, entry.DocType, entry.Language, startDate, endDate,
 			entry.AltLanguageIDs, entry.RelatedIDs, entry.Title, entry.Authors, entry.Abstract,

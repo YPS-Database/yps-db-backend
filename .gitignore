@@ -102,3 +102,4 @@ $RECYCLE.BIN/
 
 /.env
 /yps-db-backend
+/tmp
