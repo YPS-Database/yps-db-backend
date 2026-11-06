@@ -30,7 +30,7 @@ func GetRouter(trustedProxies []string, corsAllowedFrom []string) (router *gin.E
 	router.POST("/api/auth", login)
 
 	// logs
-	router.GET("/api/logs", getLogs)
+	router.GET("/api/logs", AdminAuthMiddleware(), getLogs)
 
 	// DB
 	router.GET("/api/dbs", getYpsDbs)

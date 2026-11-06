@@ -128,12 +128,14 @@ func AdminAuthMiddleware() gin.HandlerFunc {
 		if err != nil {
 			fmt.Println("Token doesn't include 'level' claim")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "unauthorized"})
+			return
 		}
 
 		if level == "admin" || level == "superuser" {
 			// continue!!
 		} else {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "unauthorized"})
+			return
 		}
 	}
 }
