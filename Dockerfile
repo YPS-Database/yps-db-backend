@@ -1,5 +1,5 @@
 ## build ypsdb binary
-FROM docker.io/golang:1.23-alpine AS build-env
+FROM docker.io/golang:1.27-alpine AS build-env
 
 RUN apk upgrade -U --force-refresh --no-cache && apk add --no-cache --purge --clean-protected -l -u make git
 
